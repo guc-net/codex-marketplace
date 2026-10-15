@@ -243,6 +243,10 @@ class TestYaml(ZFolderem):
                                          encoding="utf-8")
         self.assertEqual(komiks.czytaj_yaml(self.tmp / "b.yaml"), {"tytul": "Gołe słowa", "format": "1080x1080"})
 
+    def test_odmiana(self):
+        self.assertEqual([komiks.liczba(n, "plansza", "plansze", "plansz") for n in (1, 2, 5, 12, 22)],
+                         ["1 plansza", "2 plansze", "5 plansz", "12 plansz", "22 plansze"])
+
     def test_slug(self):
         self.assertEqual(komiks.slug("Żółta łódź — część 2!"), "zolta-lodz-czesc-2")
 

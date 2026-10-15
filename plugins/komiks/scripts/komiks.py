@@ -112,6 +112,13 @@ def dzis():
     return dt.date.today().isoformat()
 
 
+def liczba(n, jeden, kilka, wiele):
+    """Polska odmiana: 1 plansza, 2 plansze, 5 plansz."""
+    if n == 1:
+        return f"{n} {jeden}"
+    return f"{n} {kilka if n % 10 in (2, 3, 4) and n % 100 not in (12, 13, 14) else wiele}"
+
+
 def info(tekst=""):
     print(tekst)
 
@@ -531,7 +538,8 @@ def cmd_odcinek_wersja(a):
     dane = czytaj_yaml(odc / "odcinek.yaml")
     dane.update(status="wersje", wersja_biblii=v)
     zapisz_yaml(odc / "odcinek.yaml", dane)
-    info(f"Zapisano wersję v{numer} ({len(zrodla)} plansz): {cel.relative_to(kat)}")
+    info(f"Zapisano wersję v{numer} ({liczba(len(zrodla), 'plansza', 'plansze', 'plansz')}): "
+         f"{cel.relative_to(kat)}")
 
 
 def cmd_odcinek_final(a):
@@ -719,7 +727,7 @@ def zbuduj_strone(kat):
 def cmd_strona(a):
     kat = znajdz_komiks(a.komiks)
     cel, ile = zbuduj_strone(kat)
-    info(f"Strona zbudowana od zera ({ile} odcinków): {cel / 'index.html'}")
+    info(f"Strona zbudowana od zera ({liczba(ile, 'odcinek', 'odcinki', 'odcinków')}): {cel / 'index.html'}")
     info("Otwiera się dwuklikiem, bez internetu i serwera.")
 
 
