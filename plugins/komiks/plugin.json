@@ -1,0 +1,36 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "komiks",
+  "version": "0.1.0",
+  "description": "Pracownia komiksu: biblia stylu i postaci, odcinki z wersjami obrazów, strona HTML.",
+  "author": {
+    "name": "guc-net",
+    "url": "https://github.com/guc-net"
+  },
+  "homepage": "https://github.com/guc-net/codex-marketplace/tree/main/plugins/komiks",
+  "repository": "https://github.com/guc-net/codex-marketplace",
+  "license": "MIT",
+  "keywords": ["komiks", "ilustracja", "instagram", "postaci", "obrazy"],
+  "extensions": {
+    "com.openai": {
+      "onboardingSkill": "./skills/komiks/SKILL.md",
+      "interface": {
+        "displayName": "Komiks",
+        "shortDescription": "Komiks ze stałymi postaciami",
+        "longDescription": "Prowadzi przez projekt komiksu (styl, postaci, pozy, kadry), pilnuje, żeby biblia zmieniała się tylko za zgodą, zapisuje każdą wersję plansz i składa stronę HTML z odcinkami. Wszystko po polsku, w folderze na Twoim dysku.",
+        "developerName": "guc-net",
+        "category": "Creativity",
+        "capabilities": ["Read", "Write"],
+        "websiteURL": "https://github.com/guc-net/codex-marketplace",
+        "defaultPrompt": [
+          "Zacznijmy nowy komiks",
+          "Zróbmy nowy odcinek",
+          "Pokaż, na jakim etapie jest mój komiks"
+        ],
+        "brandColor": "#D9480F",
+        "composerIcon": "./assets/ikona.svg",
+        "logo": "./assets/ikona.svg"
+      }
+    }
+  }
+}

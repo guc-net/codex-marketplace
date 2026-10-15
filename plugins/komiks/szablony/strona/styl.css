@@ -1,0 +1,56 @@
+/* Kolory i font pochodzą z komiks.yaml (kolor_tla, kolor_tekstu, kolor_akcentu, font). */
+:root {
+  --tlo: {{tlo}};
+  --tekst: {{tekst}};
+  --akcent: {{akcent}};
+  --font: {{font}};
+}
+* { box-sizing: border-box; }
+html { background: var(--tlo); color: var(--tekst); }
+body {
+  margin: 0 auto; max-width: 980px; padding: 28px 18px 48px;
+  font: 17px/1.5 var(--font);
+}
+a { color: var(--akcent); }
+header { text-align: center; margin-bottom: 28px; }
+h1 { font-size: clamp(30px, 6vw, 52px); line-height: 1.1; margin: 6px 0; letter-spacing: -0.01em; }
+.odcinek h1, .zmiany h1 { font-size: clamp(24px, 4.5vw, 38px); }
+.podtytul, .opis, .licznik, .komiks, .meta { margin: 4px 0; opacity: .75; }
+.komiks a { text-decoration: none; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; font-size: 14px; }
+.nr { color: var(--akcent); }
+
+.odcinki { list-style: none; padding: 0; margin: 0;
+  display: grid; gap: 22px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+.odcinki li a {
+  display: flex; flex-direction: column; text-decoration: none; color: inherit;
+  background: #fff; border: 3px solid var(--tekst); border-radius: 6px; overflow: hidden;
+  box-shadow: 5px 5px 0 var(--tekst); transition: transform .12s, box-shadow .12s;
+}
+.odcinki li a:hover, .odcinki li a:focus-visible { transform: translate(-2px, -2px); box-shadow: 7px 7px 0 var(--akcent); }
+.odcinki img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; display: block; border-bottom: 3px solid var(--tekst); }
+.odcinki .nr { font-weight: 800; padding: 10px 14px 0; }
+.odcinki .tyt { font-weight: 700; font-size: 19px; padding: 0 14px; line-height: 1.25; }
+.odcinki .data { font-size: 14px; opacity: .65; padding: 4px 14px 12px; }
+.brak { text-align: center; opacity: .7; grid-column: 1 / -1; }
+
+.nawigacja { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 18px auto; max-width: 720px; }
+.nawigacja a, .nawigacja .pusto {
+  padding: 9px 16px; border: 2px solid var(--tekst); border-radius: 999px; text-decoration: none;
+  font-weight: 700; color: var(--tekst); background: #fff;
+}
+.nawigacja a:hover { background: var(--akcent); border-color: var(--akcent); color: #fff; }
+.nawigacja .pusto { opacity: .3; }
+.plansze { display: flex; flex-direction: column; align-items: center; gap: 22px; }
+.plansze img {
+  width: 100%; max-width: 720px; height: auto; display: block;
+  border: 3px solid var(--tekst); border-radius: 4px; background: #fff; box-shadow: 6px 6px 0 var(--tekst);
+}
+
+.wpisy { list-style: none; padding: 0; max-width: 720px; margin: 0 auto; }
+.wpisy li { background: #fff; border-left: 6px solid var(--akcent); padding: 12px 18px; margin-bottom: 14px; border-radius: 4px; }
+.wpisy li.odrzucona { border-left-color: #999; opacity: .7; }
+.wpisy li.propozycja { border-left-color: #e8b100; }
+.wpisy h2 { margin: 0 0 4px; font-size: 20px; }
+
+footer { text-align: center; margin-top: 40px; font-size: 14px; opacity: .7; }
+@media (max-width: 520px) { .nawigacja a, .nawigacja .pusto { padding: 7px 11px; font-size: 15px; } }

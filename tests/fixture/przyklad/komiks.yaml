@@ -1,0 +1,13 @@
+# Ustawienia komiksu. Stan zmienia skrypt, resztę możesz poprawić.
+tytul: "Przygody Marchewki"
+jezyk: "pl"
+stan: "produkcja"
+format: "1080x1350"
+plansze_na_post: 1
+dymki: "w-obrazie"
+autor: "Przykładowy komiks do testów"
+kolor_tla: "#fbf7f0"
+kolor_tekstu: "#2b2522"
+kolor_akcentu: "#d9480f"
+font: "Georgia, 'Times New Roman', serif"
+utworzono: "2026-10-15"

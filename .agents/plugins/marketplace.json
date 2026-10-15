@@ -1,0 +1,20 @@
+{
+  "name": "guc-net",
+  "interface": {
+    "displayName": "guc-net"
+  },
+  "plugins": [
+    {
+      "name": "komiks",
+      "source": {
+        "source": "local",
+        "path": "./plugins/komiks"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Creativity"
+    }
+  ]
+}

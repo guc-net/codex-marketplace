@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>#{{numer}} {{tytul}} — {{tytul_komiksu}}</title>
+<link rel="stylesheet" href="../styl.css">
+</head>
+<body class="odcinek">
+<header>
+  <p class="komiks"><a href="../index.html">{{tytul_komiksu}}</a></p>
+  <h1><span class="nr">#{{numer}}</span> {{tytul}}</h1>
+  <p class="opis">{{opis}}</p>
+</header>
+<nav class="nawigacja">{{nawigacja}}</nav>
+<main class="plansze">
+{{plansze}}
+</main>
+<nav class="nawigacja">{{nawigacja}}</nav>
+<footer><span class="meta">{{data}} · biblia v{{biblia}}</span><br>{{stopka}}</footer>
+<script src="../nawigacja.js"></script>
+</body>
+</html>
