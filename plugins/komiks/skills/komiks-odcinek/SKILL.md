@@ -48,14 +48,18 @@ generujesz dopiero, gdy użytkownik zatwierdził scenariusz i storyboard.
      o tryb dymków nakładanych (na razie nieobsługiwany).
 7. **Final** ✔ — „ta jest dobra” → `KOMIKS odcinek-final <nr> v<N> --komiks <folder>`,
    potem `KOMIKS strona --komiks <folder>` i `KOMIKS sprawdz --komiks <folder>`.
-   `odcinek-final` sam robi też `instagram/` — kopie plansz docięte (od środka)
-   i przeskalowane **dokładnie** do `format` (np. 1080×1350). Trwa kilka sekund na planszę.
+   `odcinek-final` sam robi też `gotowe/<odcinek>/` w komiksie — jedyne miejsce
+   z plikami do publikacji: plansze docięte (od środka) i przeskalowane **dokładnie**
+   do `format` (np. 1080×1350). Trwa kilka sekund na planszę. Zmiana finału podmienia
+   ten folder w całości; wersje zostają w `wersje/`, a każdy wybór zapisuje się w historii finału odcinka.
    Jeśli zgłosi „ucięto … sprawdź, czy dymki są całe” — obejrzyj plik i powiedz o tym;
    ucięty dymek = poprawka planszy (krok 6) z prośbą o większy margines, potem nowy final.
-8. **Na Instagram** — podaj ścieżki plików z `instagram/` w kolejności karuzeli
-   (`plansza-1`, `plansza-2`…); te wrzuca bez przycinania. `final/` to oryginały
-   w pełnej jakości (strona HTML). Zaproponuj podpis posta (2–3 zdania + 3–5
-   hasztagów) w czacie. Strona: `strona/index.html`. Pliki na Instagram zrobione
+8. **Gotowe do publikacji** — przekaż użytkownikowi blok „ZATWIERDZONE — GOTOWE DO
+   PUBLIKACJI” z wyniku `odcinek-final`: tytuł serii i numer odcinka, **pełną ścieżkę**
+   folderu, liczbę slajdów, format i kolejność publikacji. Ścieżki nie skracaj i nie
+   podawaj w jej miejsce `final/`, `wersje/` ani folderu wyników Codexa. Zaproponuj
+   podpis posta (2–3 zdania + 3–5 hasztagów) w czacie. Strona: `strona/index.html`.
+   Później ten sam komunikat: `KOMIKS gotowe <nr> --komiks <folder>`. Pliki zrobione
    od nowa (np. po zmianie `format`): `KOMIKS instagram <nr> --komiks <folder>`.
 
 ## Ile to kosztuje

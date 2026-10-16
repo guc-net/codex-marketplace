@@ -22,7 +22,7 @@ i tych samych słów**. Opis bez obrazów daje za każdym razem inną postać.
 - Wbudowany generator w Codexie **nie ma** ustawienia rozmiaru ani jakości — wybiera
   sam (np. 1122×1402 przy prośbie o 4:5). Proś więc tylko o **proporcje** (linia
   „Format obrazu” z `prompt-baza`), a dokładne piksele posta robi `odcinek-final`
-  (docięcie od środka + skala → `instagram/`).
+  (docięcie od środka + skala → `gotowe/`).
 - **Jakość zawsze pełna.** Nie dopisuj „low quality”, „low detail”, „quick draft” do
   arkuszy postaci, widoków, mimiki, póz, miejsc, próbek stylu, wzorów stylu, plansz
   ani poprawek. Wyjątek: szkic układu (skill `komiks-odcinek`, krok 4) — tylko gdy

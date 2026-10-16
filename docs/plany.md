@@ -44,7 +44,7 @@ Dlatego plugin robi tak:
 
 1. Prosi generator o proporcje posta z `komiks.yaml` (4:5 albo 1:1) i o margines
    przy krawędziach (twarze i dymki nie przy samym brzegu).
-2. Po wybraniu finału sam robi folder **`instagram/`**: plansze docięte od środka
+2. Po wybraniu finału sam robi folder **`gotowe/`**: plansze docięte od środka
    do dokładnych proporcji i przeskalowane do **1080×1350** (albo 1080×1080).
    Oryginały w pełnej jakości zostają w `final/`.
 3. Jeśli coś trzeba było uciąć albo mocno powiększyć, mówi o tym — wtedy obejrzyj

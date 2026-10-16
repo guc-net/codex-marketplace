@@ -3,6 +3,20 @@
 Najnowsza wersja na górze. Ten plik czyta plugin, kiedy mówi Ci o aktualizacji —
 pisz więc tak, żeby rozumiał to ktoś, kto nie programuje.
 
+## 0.3.0 — 2026-10-16
+
+- Biblioteka komiksów: jeden stały folder na wszystkie komiksy (np. `Dokumenty/Komiksy`).
+  Plugin pyta o niego raz i pamięta go w każdej nowej rozmowie — nowe komiksy powstają
+  tam, a „na jakim etapie są moje komiksy” pokazuje wszystkie serie. Koniec komiksów
+  zgubionych w przypadkowych folderach. Jeden komiks można zrobić gdzie indziej,
+  bez zmiany ustawienia.
+- Gotowe materiały w jednym miejscu: po wybraniu finału plugin mówi wprost, gdzie są
+  pliki do publikacji — pełna ścieżka, seria i numer odcinka, liczba slajdów, rozmiar
+  i kolejność, z napisem „zatwierdzone, gotowe do publikacji”. Pliki leżą w komiksie,
+  w folderze `gotowe/`. Inny final podmienia je tam, a wcześniejsze wersje nie giną.
+- Twoje komiksy z wersji 0.2 działają dalej; bez ustawionej biblioteki plugin pracuje
+  w bieżącym folderze jak dotąd.
+
 ## 0.2.1 — 2026-10-16
 
 - Pliki na Instagram w dokładnym rozmiarze: po wybraniu finału plugin sam robi folder

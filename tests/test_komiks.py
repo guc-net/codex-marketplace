@@ -2,6 +2,7 @@
 import contextlib
 import io
 import json
+import os
 import re
 import shutil
 import sys
@@ -30,8 +31,15 @@ class ZFolderem(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
         self.tmp = Path(self._tmp.name)
+        # ustawienia biblioteki tylko w folderze testu, nigdy w katalogu domowym
+        self._ustawienia = os.environ.get("KOMIKS_USTAWIENIA")
+        os.environ["KOMIKS_USTAWIENIA"] = str(self.tmp / "ustawienia" / "ustawienia.json")
 
     def tearDown(self):
+        if self._ustawienia is None:
+            os.environ.pop("KOMIKS_USTAWIENIA", None)
+        else:
+            os.environ["KOMIKS_USTAWIENIA"] = self._ustawienia
         self._tmp.cleanup()
 
     def kopia_fixture(self):
@@ -193,7 +201,7 @@ class TestCalyPrzebieg(ZFolderem):
         self.assertEqual(uruchom("odcinek-final", "1", "v2", "--komiks", kat)[0], 0)
         self.assertEqual((odc / "final" / "plansza-1.png").read_bytes(), (gen / "b.png").read_bytes())
         # plik na Instagram ma dokładnie format z komiks.yaml
-        self.assertEqual(rozmiar_png(odc / "instagram" / "plansza-1.png"), (1080, 1350))
+        self.assertEqual(rozmiar_png(kat / "gotowe" / odc.name / "plansza-1.png"), (1080, 1350))
         self.assertEqual(komiks.czytaj_yaml(odc / "odcinek.yaml")["final"], "wersje/v2")
 
         self.assertEqual(uruchom("obraz", "--do", kat / "projekt" / "probna", "--z-katalogu",
@@ -260,10 +268,138 @@ class TestFormatPosta(ZFolderem):
         odc = next(p for p in komiks.odcinki(kat) if (p / "final").is_dir())
         kod, wyjscie = uruchom("instagram", odc.name, "--komiks", kat)
         self.assertEqual(kod, 0, wyjscie)
-        for p in komiks.obrazy_w(odc / "instagram"):
+        for p in komiks.obrazy_w(kat / "gotowe" / odc.name):
             self.assertEqual(rozmiar_png(p), (1080, 1080))
         kod, wyjscie = uruchom("prompt-baza", "--komiks", kat)
         self.assertIn("kwadratowy, proporcje 1:1", wyjscie)
+
+
+class TestBiblioteka(ZFolderem):
+    def test_bez_biblioteki_jak_dawniej(self):
+        kod, wyjscie = uruchom("biblioteka")
+        self.assertEqual(kod, 0)
+        self.assertIn("NIE USTAWIONO", wyjscie)
+        stary = os.getcwd()
+        os.chdir(self.tmp)
+        try:
+            self.assertEqual(uruchom("nowy", "--tytul", "Tu")[0], 0)
+        finally:
+            os.chdir(stary)
+        self.assertTrue((self.tmp / "tu" / "komiks.yaml").is_file())
+
+    def test_biblioteka_niezalezna_od_biezacego_folderu(self):
+        bib = self.tmp / "Projekty" / "komiksy-codex"
+        kod, wyjscie = uruchom("biblioteka", "--ustaw", bib)
+        self.assertEqual(kod, 0, wyjscie)
+        self.assertTrue((bib / "AGENTS.md").is_file())
+        roboczy = self.tmp / "codex-tmp-rozmowa"
+        roboczy.mkdir()
+        stary = os.getcwd()
+        os.chdir(roboczy)  # „nowa rozmowa” w przypadkowym folderze
+        try:
+            self.assertEqual(uruchom("nowy", "--tytul", "Citra na Samui")[0], 0)
+            self.assertEqual(uruchom("nowy", "--tytul", "Druga seria")[0], 0)
+            kod, wyjscie = uruchom("stan")
+            self.assertIn(f"Biblioteka komiksów: {bib.resolve()}", wyjscie)
+            self.assertIn("Citra na Samui", wyjscie)
+            self.assertIn("Druga seria", wyjscie)
+            # komiks po samej nazwie, bez pełnej ścieżki
+            self.assertEqual(uruchom("postac", "--komiks", "citra-na-samui", "--imie", "Citra")[0], 0)
+            # bez --komiks przy kilku komiksach: prośba o nazwę
+            kod, wyjscie = uruchom("sprawdz")
+            self.assertEqual(kod, 1)
+            self.assertIn("citra-na-samui, druga-seria", wyjscie)
+            # jednorazowe nadpisanie lokalizacji
+            inny = self.tmp / "inny"
+            self.assertEqual(uruchom("nowy", "--tytul", "Gdzie indziej", "--biblioteka", inny)[0], 0)
+        finally:
+            os.chdir(stary)
+        self.assertEqual(list(roboczy.iterdir()), [])
+        self.assertTrue((bib / "citra-na-samui" / "biblia" / "postaci" / "citra" / "postac.md").is_file())
+        self.assertTrue((self.tmp / "inny" / "gdzie-indziej" / "komiks.yaml").is_file())
+        self.assertFalse((bib / "gdzie-indziej").exists())
+        kod, wyjscie = uruchom("biblioteka")
+        self.assertIn(f"BIBLIOTEKA: {bib.resolve()}", wyjscie)
+        self.assertIn("Komiksów w bibliotece: 2", wyjscie)
+        kod, wyjscie = uruchom("biblioteka", "--wylacz")
+        self.assertIn("NIE USTAWIONO", uruchom("biblioteka")[1])
+        self.assertTrue((bib / "citra-na-samui" / "komiks.yaml").is_file())
+
+    def test_brak_folderu_biblioteki(self):
+        bib = self.tmp / "dysk"
+        uruchom("biblioteka", "--ustaw", bib)
+        shutil.rmtree(bib)
+        kod, wyjscie = uruchom("stan")
+        self.assertEqual(kod, 1)
+        self.assertIn("Nie ma folderu biblioteki", wyjscie)
+
+    def test_ostrzega_przed_folderem_tymczasowym(self):
+        kod, wyjscie = uruchom("biblioteka", "--ustaw", Path(tempfile.gettempdir()) / "komiksy-x")
+        self.assertIn("folder tymczasowy", wyjscie)
+        shutil.rmtree(Path(tempfile.gettempdir()) / "komiksy-x")
+
+
+class TestGotowe(ZFolderem):
+    def komiks_z_odcinkiem(self, plansze):
+        kat = self.kopia_fixture()
+        dane = komiks.czytaj_yaml(kat / "komiks.yaml")
+        dane["tytul"] = "Citra na Samui"
+        komiks.zapisz_yaml(kat / "komiks.yaml", dane)
+        uruchom("odcinek-nowy", "--komiks", kat, "--tytul", "Plaża")
+        odc = kat / "odcinki" / "003-plaza"
+        pliki = []
+        for i in range(plansze):
+            pliki += ["--plik", self.tmp / f"p{i}.png"]
+            png(self.tmp / f"p{i}.png", 40, 60, (10 * i, 100, 50))
+        uruchom("odcinek-wersja", "3", "--komiks", kat, *pliki)
+        return kat, odc, pliki
+
+    def test_karuzela_komunikat_i_folder(self):
+        kat, odc, _ = self.komiks_z_odcinkiem(3)
+        kod, wyjscie = uruchom("odcinek-final", "3", "v1", "--komiks", kat)
+        self.assertEqual(kod, 0, wyjscie)
+        gotowe = kat / "gotowe" / "003-plaza"
+        self.assertIn("ZATWIERDZONE — GOTOWE DO PUBLIKACJI", wyjscie)
+        self.assertIn("Gotowe materiały do publikacji dla „Citra na Samui”, odcinek 003 („Plaża”):", wyjscie)
+        self.assertIn(f"\n{gotowe.resolve()}\n", wyjscie)
+        self.assertIn("3 slajdy • PNG 1080 × 1350 px • kolejność publikacji: 1 → 3", wyjscie)
+        self.assertIn("  3. plansza-3.png", wyjscie)
+        self.assertEqual(sorted(p.name for p in komiks.obrazy_w(gotowe)),
+                         ["plansza-1.png", "plansza-2.png", "plansza-3.png"])
+        self.assertIn("ZATWIERDZONE", (gotowe / "zatwierdzone.txt").read_text(encoding="utf-8"))
+        self.assertFalse((odc / "instagram").exists())
+        # to samo później, bez ponownego liczenia
+        kod, wyjscie2 = uruchom("gotowe", "3", "--komiks", kat)
+        self.assertIn("3 slajdy • PNG 1080 × 1350 px", wyjscie2)
+
+    def test_pojedyncza_plansza(self):
+        kat, odc, _ = self.komiks_z_odcinkiem(1)
+        kod, wyjscie = uruchom("odcinek-final", "3", "v1", "--komiks", kat)
+        self.assertIn("1 slajd • PNG 1080 × 1350 px • pojedynczy post", wyjscie)
+
+    def test_zmiana_finalu_podmienia_gotowe_i_zachowuje_historie(self):
+        kat, odc, _ = self.komiks_z_odcinkiem(3)
+        uruchom("odcinek-final", "3", "v1", "--komiks", kat)
+        png(self.tmp / "nowa.png", 40, 50, (1, 2, 3))
+        uruchom("odcinek-wersja", "3", "--komiks", kat, "--plik", self.tmp / "nowa.png")
+        kod, wyjscie = uruchom("odcinek-final", "3", "v2", "--komiks", kat)
+        self.assertIn("1 slajd", wyjscie)
+        gotowe = kat / "gotowe" / "003-plaza"
+        self.assertEqual([p.name for p in komiks.obrazy_w(gotowe)], ["plansza-1.png"])
+        self.assertEqual(len(komiks.obrazy_w(odc / "wersje" / "v1")), 3)
+        historia = (odc / "historia-finalu.md").read_text(encoding="utf-8")
+        self.assertIn("final = wersje/v1", historia)
+        self.assertIn("final = wersje/v2 (wcześniej wersje/v1)", historia)
+        self.assertEqual(uruchom("sprawdz", "--komiks", kat)[0], 0)
+
+    def test_stary_odcinek_bez_gotowe(self):
+        kat = self.kopia_fixture()
+        kod, wyjscie = uruchom("gotowe", "--komiks", kat)
+        self.assertEqual(kod, 0, wyjscie)
+        self.assertIn("odcinek 001", wyjscie)
+        self.assertIn("odcinek 002", wyjscie)
+        self.assertTrue((kat / "gotowe" / "001-sok-to-nie-owoc" / "plansza-1.png").is_file())
+        self.assertIn("gotowe do publikacji:", uruchom("stan", "--folder", kat)[1])
 
 
 class TestProjektV02(ZFolderem):

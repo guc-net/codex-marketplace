@@ -19,7 +19,8 @@ co już jest.
 
 1. **Pytania na start** — z pliku `pytania.md` (ten folder), po jednym, z domyślną
    odpowiedzią. Potem `KOMIKS nowy --tytul "Tytuł" --format 1080x1350
-   --plansze-na-post 1 --kanal instagram --jezyk pl` (w folderze z komiksami)
+   --plansze-na-post 1 --kanal instagram --jezyk pl` (komiks trafi do biblioteki —
+   skill `komiks`, krok 2; bez biblioteki do bieżącego folderu)
    i zapis celu, odbiorcy i tonu w `biblia/ton.md` (temat, odbiorca, morał, ton,
    czego nie mówimy). Zdjęcia autora-postaci odłóż do `projekt/zdjecia/`, inspiracje
    do `projekt/inspiracje/`.
