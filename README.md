@@ -6,7 +6,7 @@ wersje przychodzą z tego samego miejsca.
 
 | Plugin | Co robi | Wersja |
 |---|---|---|
-| [komiks](plugins/komiks/) | Pracownia komiksu ze stałymi postaciami: biblia stylu i postaci z zatwierdzanymi zmianami, odcinki z wersjami plansz, strona HTML | 0.1.0 |
+| [komiks](plugins/komiks/) | Pracownia komiksu ze stałymi postaciami: biblia stylu i postaci z zatwierdzanymi zmianami, odcinki z wersjami plansz, strona HTML | 0.2.0 |
 
 ## Instalacja
 

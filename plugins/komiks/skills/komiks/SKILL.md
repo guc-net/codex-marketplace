@@ -26,7 +26,8 @@ po co, i poproś o zgodę. `python3 KOMIKS --help` pokazuje wszystkie polecenia.
 
 1. **Aktualizacja** — `KOMIKS aktualizacje`. Sprawdza raz dziennie, więc nie męczy.
    - `AKTUALNA` → nic nie mów.
-   - `NOWA WERSJA x` → powiedz krótko, co nowego (z listy „Co nowego”, swoimi słowami)
+   - `NOWA WERSJA x` → powiedz od razu, w pierwszej odpowiedzi: „Jest nowa wersja
+     pluginu: x (masz y).” i krótko, co nowego (z listy „Co nowego”, swoimi słowami)
      i zapytaj: „Zaktualizować teraz?”. Po „tak” uruchom
      `codex plugin marketplace upgrade guc-net` (poproś o zgodę na dostęp do sieci,
      jeśli trzeba). Jeśli polecenia `codex` nie ma, powiedz, że aktualizację trzeba
@@ -40,6 +41,14 @@ po co, i poproś o zgodę. `python3 KOMIKS --help` pokazuje wszystkie polecenia.
 4. **Kontrola biblii** — dla komiksu w produkcji uruchom `KOMIKS sprawdz --komiks <folder>`.
    Jeśli zgłasza zmiany bez zatwierdzenia, powiedz o tym od razu i zaproponuj:
    wniosek o zmianę (skill `komiks-zmiana`) albo przywrócenie z `historia-biblii/`.
+
+## Spójność grafiki
+
+Każdy obraz komiksu generujesz wg `spojnosc.md` (ten folder): obrazy wzorcowe
+na wejściu w kolejności z `KOMIKS prompt-baza`, stały początek promptu bez zmiany słów,
+poprawki jako edycja poprzedniej wersji. Gdy użytkownik pyta, jak dbać o spójność
+albo ile kosztują obrazy na jego planie — streść `docs/spojnosc.md` i `docs/plany.md`
+z repozytorium github.com/guc-net/codex-marketplace.
 
 ## Dokąd dalej
 

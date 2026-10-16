@@ -163,6 +163,13 @@ class TestCalyPrzebieg(ZFolderem):
         self.assertEqual(komiks.wczytaj_komiks(kat)["tytul"], "Żółta łódź")
         self.assertEqual(uruchom("postac", "--komiks", kat, "--imie", "Ola")[0], 0)
 
+        # bez pełnego arkusza obrotu postaci nie ma produkcji
+        kod, wyjscie = uruchom("start-produkcji", "--komiks", kat, "--zgoda", "TAK")
+        self.assertEqual(kod, 1)
+        self.assertIn("lewy profil", wyjscie)
+        for w in komiks.WIDOKI:
+            png(kat / "biblia" / "postaci" / "ola" / "widoki" / f"{w}.png", 4, 4, (9, 9, 9))
+
         # bez zgody nie ma produkcji, a odcinka nie da się założyć w projekcie
         self.assertEqual(uruchom("start-produkcji", "--komiks", kat, "--zgoda", "chyba")[0], 1)
         self.assertEqual(uruchom("odcinek-nowy", "--komiks", kat, "--tytul", "X")[0], 1)
@@ -197,6 +204,77 @@ class TestCalyPrzebieg(ZFolderem):
         kod, wyjscie = uruchom("stan", "--folder", self.tmp)
         self.assertIn("Żółta łódź", wyjscie)
         self.assertIn("gotowe 1", wyjscie)
+
+
+class TestProjektV02(ZFolderem):
+    def nowy(self, *opcje):
+        kod, wyjscie = uruchom("nowy", "--tytul", "Talerz", "--folder", self.tmp, *opcje)
+        self.assertEqual(kod, 0, wyjscie)
+        return self.tmp / "talerz"
+
+    def test_odpowiedzi_na_pytania_startowe(self):
+        kat = self.nowy("--format", "1080x1080", "--plansze-na-post", "3", "--kanal", "instagram",
+                        "--rytm", "1 w tygodniu", "--widoki-dodatkowe", "gora,dol")
+        dane = komiks.wczytaj_komiks(kat)
+        self.assertEqual((dane["format"], dane["plansze_na_post"], dane["rytm"]),
+                         ("1080x1080", 3, "1 w tygodniu"))
+        uruchom("postac", "--komiks", kat, "--imie", "Adam")
+        postac = (kat / "biblia" / "postaci" / "adam" / "postac.md").read_text(encoding="utf-8")
+        for widok in ("widoki/przod.png", "widoki/tyl.png", "widoki/profil-lewy.png",
+                      "widoki/profil-prawy.png", "widoki/trzy-czwarte.png", "widoki/gora.png", "widoki/dol.png"):
+            self.assertIn(widok, postac)
+        self.assertEqual(komiks.braki_widokow(kat)["adam"],
+                         ["przod", "tyl", "profil-lewy", "profil-prawy", "trzy-czwarte", "gora", "dol"])
+        kod, wyjscie = uruchom("stan", "--folder", self.tmp)
+        self.assertIn("z dołu", wyjscie)
+
+    def test_gora_dol_tylko_na_zyczenie(self):
+        kat = self.nowy()
+        uruchom("postac", "--komiks", kat, "--imie", "Ola")
+        self.assertNotIn("gora", komiks.braki_widokow(kat)["ola"])
+        self.assertNotIn("gora.png", (kat / "biblia" / "postaci" / "ola" / "postac.md").read_text(encoding="utf-8"))
+
+    def test_prompt_baza(self):
+        kat = self.nowy()
+        uruchom("postac", "--komiks", kat, "--imie", "Ola")
+        uruchom("miejsce", "--komiks", kat, "--nazwa-miejsca", "Kuchnia")
+        b = kat / "biblia"
+        styl = (b / "styl.md").read_text(encoding="utf-8")
+        styl = styl.replace("(2–4 zdania, które idą DOSŁOWNIE na początek każdego promptu; nie zmieniaj ich słów)",
+                            "Ligne claire, równa czarna kontur 2 px, płaskie kolory.")
+        styl = styl.replace("(lista negatywów, np. fotorealizm; plastikowy połysk; gradienty jak z AI; inne style)",
+                            "- fotorealizm\n- plastikowy połysk")
+        (b / "styl.md").write_text(styl, encoding="utf-8")
+        postac = b / "postaci" / "ola" / "postac.md"
+        postac.write_text(postac.read_text(encoding="utf-8").replace(
+            "(1–3 zdania do każdego promptu, zawsze tymi samymi słowami)", "Ola, 8 lat, rude warkocze."),
+            encoding="utf-8")
+        png(b / "styl" / "wzor-01.png", 4, 4, (1, 2, 3))
+        png(b / "postaci" / "ola" / "arkusz.png", 4, 4, (1, 2, 3))
+        png(b / "postaci" / "ola" / "widoki" / "tyl.png", 4, 4, (1, 2, 3))
+        png(b / "miejsca" / "kuchnia.png", 4, 4, (1, 2, 3))
+        kod, wyjscie = uruchom("prompt-baza", "--komiks", kat, "--postac", "Ola", "--widok", "tyl",
+                               "--miejsce", "Kuchnia")
+        self.assertEqual(kod, 0, wyjscie)
+        kolejnosc = [wyjscie.index(x) for x in ("1. biblia/styl/wzor-01.png", "2. biblia/postaci/ola/arkusz.png",
+                                                "3. biblia/postaci/ola/widoki/tyl.png", "4. biblia/miejsca/kuchnia.png")]
+        self.assertEqual(kolejnosc, sorted(kolejnosc))
+        self.assertIn("Ligne claire, równa czarna kontur 2 px", wyjscie)
+        self.assertIn("ola: Ola, 8 lat, rude warkocze.", wyjscie)
+        self.assertIn("Nie rób: fotorealizm; plastikowy połysk", wyjscie)
+        self.assertIn("1080×1350", wyjscie)
+        self.assertNotIn("UWAGA", wyjscie)
+        self.assertEqual(uruchom("prompt-baza", "--komiks", kat, "--postac", "Ola", "--widok", "bok")[0], 1)
+
+    def test_komiks_z_wersji_010_dziala(self):
+        # Fixture to komiks założony w 0.1.0 (stary styl.md i postac.md, bez widoki/).
+        kat = self.kopia_fixture()
+        self.assertEqual(uruchom("sprawdz", "--komiks", kat)[0], 0)
+        kod, wyjscie = uruchom("prompt-baza", "--komiks", kat, "--postac", "marchewka")
+        self.assertEqual(kod, 0, wyjscie)
+        self.assertIn("biblia/postaci/marchewka/arkusz.png", wyjscie)
+        self.assertIn("Blok stylu", wyjscie)  # uwaga o brakującej sekcji, bez błędu
+        self.assertEqual(uruchom("stan", "--folder", kat)[0], 0)
 
 
 class TestAktualizacje(ZFolderem):

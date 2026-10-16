@@ -1,58 +1,75 @@
 ---
 name: komiks-projekt
-description: Faza projektu komiksu — prowadzi krok po kroku przez nazwę, temat, styl, postaci (arkusze, mimika, pozy), miejsca, kadry i dymki aż do planszy próbnej i zamrożenia biblii v1. Używaj, gdy ktoś zaczyna nowy komiks albo komiks ma stan „projekt”.
+description: Faza projektu komiksu — pytania startowe, 4–6 zupełnie różnych stylów do wyboru, postaci z arkuszami obrotu (przód, tył, oba profile, 3/4, opcjonalnie góra i dół), miejsca, kadry i dymki aż do planszy próbnej i zamrożenia biblii v1. Używaj, gdy ktoś zaczyna nowy komiks albo komiks ma stan „projekt”.
 ---
 
 # Faza projektu: budujemy biblię
 
-Skrypt KOMIKS i zasady rozmowy — jak w skillu `komiks`. Idziesz po kolei, jeden krok
-naraz. Każdy krok kończy się **zapisem do biblii** i jednym zdaniem: „Zapisałem: …”.
-W tej fazie biblię zmieniasz wprost (nic jeszcze od niej nie zależy), ale zawsze mówisz,
-co zapisałeś.
+Skrypt KOMIKS i zasady rozmowy — jak w skillu `komiks`. Reguły generowania obrazów
+są w `../komiks/spojnosc.md` — przeczytaj je przed pierwszym obrazem. Idziesz po kolei,
+jeden krok naraz. Każdy krok kończy się **zapisem do biblii** i jednym zdaniem:
+„Zapisałem: …”. W tej fazie biblię zmieniasz wprost (nic jeszcze od niej nie zależy),
+ale zawsze mówisz, co zapisałeś.
 
-Zanim zaczniesz, przeczytaj `komiks.yaml` i istniejące pliki `biblia/`, żeby wiedzieć,
-na którym kroku jesteście — nie zaczynaj od nowa tego, co już jest.
+Zanim zaczniesz, przeczytaj `komiks.yaml` i istniejące pliki `biblia/` oraz wynik
+`KOMIKS stan`, żeby wiedzieć, na którym kroku jesteście — nie zaczynaj od nowa tego,
+co już jest.
 
 ## Kroki
 
-1. **Nazwa** — zapytaj o tytuł. `KOMIKS nowy --tytul "Tytuł"` (w folderze z komiksami).
-   Zapytaj też o format posta (Instagram 4:5 = `1080x1350`, kwadrat = `1080x1080`)
-   i czy post to jedna plansza czy karuzela; zapisz w `komiks.yaml`
-   (`format`, `plansze_na_post`). Jeśli nie wie — zostaw domyślne i powiedz, że można zmienić.
-2. **O czym i dla kogo** → `biblia/ton.md`: temat, odbiorca, morał, ton, czego nie mówimy.
-3. **Styl** — zapytaj o przykłady, które mu się podobają (może wkleić obrazy).
-   Wygeneruj **3–4 próbki tej samej prostej sceny** w różnych stylach (opisz różnice
-   jednym zdaniem każda). Przy wyborze dopytaj o korekty. Zwycięzcę zapisz:
-   `KOMIKS obraz --do <komiks>/biblia/styl/wzor-01.png` (bierze ostatnio wygenerowany
-   obraz; `--plik` wskazuje konkretny), a opis stylu w `biblia/styl.md`
-   (kreska, paleta, światło, faktura, **czego unikać** — np. „nie fotorealizm,
-   nie plastikowy połysk, nie typowy wygląd AI”).
-4. **Postaci** — dla każdej: `KOMIKS postac --imie "Imię" --komiks <folder>`, potem
-   opis w `postac.md`; potem **arkusz referencyjny** (przód / bok / tył, pełna sylwetka,
-   neutralne tło) generowany **z wzorem stylu na wejściu** → `arkusz.png`; potem
-   `mimika.png` (6 min na jednym obrazie) i 3–6 typowych póz w `pozy/` (obraz + krótki
-   `.md`). Każdy następny obraz postaci generuj z jej arkuszem na wejściu.
-   Jeśli użytkownik sam ma być postacią, poproś o 1–2 zdjęcia jako referencję.
-5. **Miejsca** — `KOMIKS miejsce --nazwa-miejsca "Kuchnia" --komiks <folder>`, opis
+1. **Pytania na start** — z pliku `pytania.md` (ten folder), po jednym, z domyślną
+   odpowiedzią. Potem `KOMIKS nowy --tytul "Tytuł" --format 1080x1350
+   --plansze-na-post 1 --kanal instagram --jezyk pl` (w folderze z komiksami)
+   i zapis celu, odbiorcy i tonu w `biblia/ton.md` (temat, odbiorca, morał, ton,
+   czego nie mówimy). Zdjęcia autora-postaci odłóż do `projekt/zdjecia/`, inspiracje
+   do `projekt/inspiracje/`.
+2. **Style** — wg `style.md` (ten folder): 4–6 zupełnie różnych stylów, ta sama
+   scena-próbka, zapis w `projekt/style/`. Wybór (albo mieszanka) → `biblia/styl/wzor-01.png`
+   (najlepiej 2–3 wzory) i pełny `biblia/styl.md` z kodami kolorów, Blokiem stylu
+   i listą Nie rób.
+3. **Postaci** — dla każdej: `KOMIKS postac --imie "Imię" --komiks <folder>`. Zapytaj,
+   czy chce też widoków z góry i z dołu; jeśli tak — dopisz w `komiks.yaml`
+   `widoki_dodatkowe: "gora,dol"` **przed** dodaniem postaci. Potem `postac.md`
+   (proporcje, paleta z kodami, znaki szczególne, ubiór, charakter, Blok postaci),
+   a obrazy wg „Arkusz obrotu postaci” w `../komiks/spojnosc.md`:
+   `arkusz.png` → `widoki/przod.png`, `tyl.png`, `profil-lewy.png`, `profil-prawy.png`,
+   `trzy-czwarte.png` (+ `gora.png`, `dol.png`) → `mimika.png` → 3–6 póz w `pozy/`.
+   Zapis: `KOMIKS obraz --do <komiks>/biblia/postaci/<imię>/widoki/tyl.png`.
+   Pokaż widoki razem i zapytaj, czy to ta sama osoba ze wszystkich stron. Poprawiaj
+   pojedynczy widok edycją, nie cały arkusz od nowa.
+4. **Miejsca** — `KOMIKS miejsce --nazwa-miejsca "Kuchnia" --komiks <folder>`, opis
    i obraz tła (z wzorem stylu na wejściu) obok, pod tą samą nazwą `.png`.
-6. **Kadry i dymki** → `biblia/kadry.md` (typowe układy, np. 1 plansza = 4 kadry 2×2)
-   i `biblia/dymki.md` (długość kwestii, kto mówi pierwszy, styl liter). Tryb na start:
-   **tekst w obrazie** — powiedz uczciwie, że poprawka tekstu oznacza nową wersję obrazu.
-7. **Plansza próbna** — jedna plansza ze wszystkim razem (wzór stylu, arkusze postaci,
-   tło na wejściu). Jeśli zaakceptowana, zapytaj wprost:
+5. **Kadry i dymki** → `biblia/kadry.md` (typowe układy, np. 1 plansza = 4 kadry 2×2,
+   odległość kamery, wysokość horyzontu) i `biblia/dymki.md` (długość kwestii, kto mówi
+   pierwszy, kształt dymków, krój liter). Tryb na start: **tekst w obrazie** — powiedz
+   uczciwie, że poprawka tekstu oznacza nową wersję obrazu.
+6. **Plansza próbna** — jedna plansza ze wszystkim razem, prompt z `KOMIKS prompt-baza`.
+   Jeśli zaakceptowana, zapytaj wprost:
    „Zamrażam biblię jako wersję 1? Od tej chwili każda zmiana stylu czy postaci będzie
    wymagała Twojego TAK. Napisz TAK.” Po odpowiedzi zaczynającej się od TAK:
    `KOMIKS start-produkcji --komiks <folder> --zgoda "<dokładne słowa>"`.
+   Skrypt odmówi, jeśli któraś postać nie ma kompletu widoków — wtedy dorób brakujące.
    Plansza próbna może zostać jako `projekt/plansza-probna.png`.
+
+## Ile obrazów to kosztuje
+
+Powiedz to przed krokiem 2 i przed krokiem 3 (każdy obraz zużywa limit planu kilka
+razy szybciej niż zwykła wiadomość):
+
+- style: 4–6 próbek + 1–2 mieszanki;
+- każda postać: arkusz 1 + widoki 5 (z górą i dołem 7) + mimika 1 + pozy 3–6,
+  plus zwykle 2–4 poprawki — razem ok. 12–20;
+- miejsce: 1–2; plansza próbna: 1–3.
+
+Komiks z dwiema postaciami i dwoma miejscami to zwykle **35–55 obrazów** na cały
+projekt — rozłóż to na kilka dni, jeśli plan ma mały limit.
 
 ## Generowanie obrazów
 
-- Zawsze podawaj obrazy referencyjne na wejściu i mów w prompcie, który jest czym
-  („obraz 1 to wzór stylu, obraz 2 to arkusz postaci Oli”). Opis bez referencji
-  daje inną postać za każdym razem.
-- Proporcje obrazu zgodne z `format` z `komiks.yaml`.
-- Generacja zużywa limit planu kilka razy szybciej niż zwykła wiadomość — nie generuj
-  seriami bez potrzeby; przed większą serią powiedz, ile obrazów zrobisz.
+- Zawsze wg `../komiks/spojnosc.md`: obrazy wzorcowe na wejściu, nazwane w prompcie,
+  stałe słowa z `prompt-baza`.
+- Proporcje obrazu zgodne z `format` z `komiks.yaml`; arkusze i widoki postaci mogą być
+  w innych proporcjach (pełna sylwetka, pion).
 - Wygenerowany obraz zapisujesz poleceniem `KOMIKS obraz --do <ścieżka>`. Jeśli skrypt
   nie znajdzie obrazu (inna lokalizacja), zapytaj, gdzie jest, albo zapisz go sam
   i podaj `--plik`.
