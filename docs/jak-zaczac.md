@@ -6,6 +6,23 @@ ich otwierać, ale możesz (to zwykłe teksty i obrazy).
 Dwie inne ściągi: [jak dbać o spójność grafiki](spojnosc.md) i
 [co daje który plan ChatGPT](plany.md).
 
+## Biblioteka komiksów (raz na zawsze)
+
+Plugin trzyma wszystkie Twoje komiksy w jednym folderze — **bibliotece**. Za pierwszym
+razem zapyta, gdzie ma być (np. `Dokumenty/Komiksy`). Potem pamięta to w każdej nowej
+rozmowie, nawet jeśli Codex otworzy inny folder: tam zakłada nowe komiksy i stamtąd
+pokazuje stan wszystkich serii.
+
+| Chcesz | Napisz |
+|---|---|
+| ustawić albo zmienić bibliotekę | „Trzymaj moje komiksy w `/Users/ja/Projects/komiksy`” |
+| sprawdzić, gdzie jest | „Gdzie są moje komiksy?” |
+| jeden komiks gdzie indziej (bez zmiany ustawienia) | „Ten komiks zrób w `Pulpit/próba`” |
+
+Gotowe pliki każdego odcinka leżą w komiksie, w folderze `gotowe/` — jeden podfolder
+na odcinek, zawsze z aktualnym finałem. Jeśli wybierzesz inny final, plugin podmieni
+pliki w tym folderze; wcześniejsze wersje nie giną.
+
 ## Etap 1: projekt (raz na komiks)
 
 Napisz **„Zacznijmy nowy komiks”**. Codex przeprowadzi Cię po kolei:
@@ -39,7 +56,7 @@ Napisz **„Zacznijmy nowy komiks”**. Codex przeprowadzi Cię po kolei:
 | 5. Plansza | Codex rysuje z obrazami postaci i stylu na wejściu → **wersja 1** ✔ | 1 na planszę |
 | 6. Poprawki | **„W kadrze 3 ma się uśmiechać”** → wersja 2, 3… (stare nie giną) ✔ | 1–3 |
 | 7. Final | **„Ta jest dobra”** → final, strona komiksu się odświeża ✔ | 0 |
-| 8. Instagram | Codex poda pliki z folderu `instagram/` (dokładnie 1080×1350) w kolejności karuzeli i podpis posta | 0 |
+| 8. Gotowe | Codex poda **pełną ścieżkę** folderu z gotowymi plikami (dokładnie 1080×1350), liczbę slajdów, kolejność publikacji i podpis posta | 0 |
 
 ✔ = tu decydujesz Ty. **Słowa poprawiaj w kroku 2 i 3** — tekst nic nie kosztuje,
 każdy obraz zużywa limit planu.
@@ -57,6 +74,7 @@ wersji biblii; na stronie widać dziennik zmian.
 |---|---|
 | zobaczyć, gdzie jesteś | „Na jakim etapie jest mój komiks?” |
 | zobaczyć stronę | „Pokaż stronę komiksu” |
+| znaleźć pliki do publikacji | „Gdzie są gotowe pliki odcinka 3?” |
 | wrócić do starszej wersji planszy | „Weź wersję 2 jako final” |
 | zmienić format posta | „Od teraz kwadrat 1:1” |
 | oszczędzić limit | „Najpierw tylko scenariusze na trzy odcinki, bez obrazów” |

@@ -20,6 +20,7 @@ import re
 import shutil
 import struct
 import sys
+import tempfile
 import unicodedata
 import urllib.request
 import zlib
@@ -139,12 +140,79 @@ def info(tekst=""):
     print(tekst)
 
 
+# --- biblioteka: jeden stały folder ze wszystkimi komiksami -------------------
+# Ustawienie leży w katalogu domowym, a nie w komiksie, żeby działało w każdej
+# nowej rozmowie — niezależnie od folderu, który Codex akurat otworzył.
+# Bez ustawienia wszystko działa jak w 0.2: komiksy w bieżącym folderze.
+
+def plik_ustawien():
+    return Path(os.environ.get("KOMIKS_USTAWIENIA")
+                or Path.home() / ".komiks-plugin" / "ustawienia.json").expanduser()
+
+
+def czytaj_ustawienia():
+    plik = plik_ustawien()
+    if not plik.is_file():
+        return {}
+    try:
+        dane = json.loads(plik.read_text(encoding="utf-8"))
+    except ValueError:
+        raise Blad(f"{plik}: uszkodzony plik ustawień. Ustaw bibliotekę od nowa: "
+                   "komiks.py biblioteka --ustaw <folder>")
+    return dane if isinstance(dane, dict) else {}
+
+
+def zapisz_ustawienia(dane):
+    plik = plik_ustawien()
+    plik.parent.mkdir(parents=True, exist_ok=True)
+    plik.write_text(json.dumps(dane, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def biblioteka():
+    """Folder biblioteki z ustawień albo None."""
+    sciezka = czytaj_ustawienia().get("biblioteka")
+    return Path(sciezka).expanduser() if sciezka else None
+
+
+def folder_komiksow(folder=None):
+    """Gdzie są komiksy: --folder (jednorazowo) > biblioteka z ustawień > bieżący folder."""
+    if folder:
+        return Path(folder).expanduser().resolve()
+    bib = biblioteka()
+    if bib is None:
+        return Path(".").resolve()
+    if not bib.is_dir():
+        raise Blad(f"Nie ma folderu biblioteki komiksów: {bib} (odłączony dysk albo przeniesiony "
+                   "folder?). Podłącz go albo ustaw nowy: komiks.py biblioteka --ustaw <folder>")
+    return bib
+
+
+def komiksy_w(korzen):
+    if (korzen / "komiks.yaml").is_file():
+        return [korzen]
+    if not korzen.is_dir():
+        return []
+    return sorted(p for p in korzen.iterdir() if (p / "komiks.yaml").is_file())
+
+
 def znajdz_komiks(sciezka):
-    """Katalog komiksu: podany wprost albo najbliższy rodzic z komiks.yaml."""
-    p = Path(sciezka or ".").resolve()
+    """Katalog komiksu: podany wprost, sama nazwa komiksu z biblioteki albo najbliższy
+    rodzic z komiks.yaml; poza komiksem — jedyny komiks w bibliotece."""
+    bib = biblioteka()
+    p = Path(sciezka or ".").expanduser()
+    if sciezka and not p.is_absolute() and not p.exists() and bib and (bib / p).is_dir():
+        p = bib / p
+    p = p.resolve()
     for kandydat in [p, *p.parents]:
         if (kandydat / "komiks.yaml").is_file():
             return kandydat
+    if not sciezka and bib and bib.is_dir():
+        komiksy = komiksy_w(bib)
+        if len(komiksy) == 1:
+            return komiksy[0]
+        if komiksy:
+            raise Blad(f"W bibliotece {bib} jest kilka komiksów: "
+                       f"{', '.join(k.name for k in komiksy)}. Podaj --komiks <nazwa>.")
     raise Blad(f"Nie znaleziono komiks.yaml w {p} ani wyżej. Podaj --komiks <folder komiksu>.")
 
 
@@ -266,8 +334,53 @@ SZKIELET_BIBLII = {
 }
 
 
+def _wyglada_na_tymczasowy(folder):
+    tekst = folder.as_posix().lower()
+    tmp = Path(tempfile.gettempdir()).resolve().as_posix().lower()
+    return (tekst.startswith(tmp + "/") or tekst == tmp or "/var/folders/" in tekst
+            or "/.codex/" in tekst or "/tmp/" in tekst + "/")
+
+
+def cmd_biblioteka(a):
+    dane = czytaj_ustawienia()
+    if a.ustaw:
+        folder = Path(a.ustaw).expanduser().resolve()
+        if folder.exists() and not folder.is_dir():
+            raise Blad(f"{folder} to plik, nie folder.")
+        folder.mkdir(parents=True, exist_ok=True)
+        if not (folder / "AGENTS.md").exists():
+            (folder / "AGENTS.md").write_text(AGENTS_MD, encoding="utf-8")
+        dane["biblioteka"] = str(folder)
+        zapisz_ustawienia(dane)
+        info(f"BIBLIOTEKA: {folder}")
+        info("Od teraz nowe komiksy powstają tutaj, a stan pokazuje wszystkie komiksy z tego "
+             "folderu — także w nowej rozmowie, niezależnie od otwartego folderu.")
+        info(f"Komiksów w bibliotece: {len(komiksy_w(folder))}.")
+        if _wyglada_na_tymczasowy(folder):
+            info("UWAGA: to wygląda na folder tymczasowy — może zniknąć. Lepiej wybrać folder "
+                 "w dokumentach albo projektach.")
+        return 0
+    if a.wylacz:
+        dane.pop("biblioteka", None)
+        zapisz_ustawienia(dane)
+        info("NIE USTAWIONO: biblioteka wyłączona, komiksy znów w bieżącym folderze. "
+             "Pliki komiksów zostały na miejscu.")
+        return 0
+    bib = biblioteka()
+    if bib is None:
+        info("NIE USTAWIONO: komiksy powstają w bieżącym folderze. "
+             "Ustaw: komiks.py biblioteka --ustaw <folder>")
+        return 0
+    if not bib.is_dir():
+        info(f"BRAK FOLDERU: biblioteka {bib} nie istnieje (odłączony dysk?).")
+        return 1
+    info(f"BIBLIOTEKA: {bib}")
+    info(f"Komiksów w bibliotece: {len(komiksy_w(bib))}.")
+    return 0
+
+
 def cmd_przygotuj(a):
-    folder = Path(a.folder or ".").resolve()
+    folder = folder_komiksow(a.folder)
     folder.mkdir(parents=True, exist_ok=True)
     plik = folder / "AGENTS.md"
     if plik.exists() and not a.nadpisz:
@@ -281,7 +394,7 @@ def cmd_nowy(a):
     tytul = a.tytul.strip()
     if not tytul:
         raise Blad("Podaj tytuł komiksu.")
-    folder = Path(a.folder or ".").resolve() / (a.nazwa or slug(tytul))
+    folder = folder_komiksow(a.folder) / (a.nazwa or slug(tytul))
     if (folder / "komiks.yaml").exists():
         raise Blad(f"Komiks już istnieje: {folder}")
     for pod in ["biblia/styl", "biblia/postaci", "biblia/miejsca", "zmiany",
@@ -638,15 +751,21 @@ def cmd_odcinek_final(a):
     m = re.search(r"^Biblia: v(\d+)", (zrodlo / "prompt.md").read_text(encoding="utf-8"), re.M) \
         if (zrodlo / "prompt.md").is_file() else None
     dane = czytaj_yaml(odc / "odcinek.yaml")
+    poprzedni = dane.get("final")
+    with open(odc / "historia-finalu.md", "a", encoding="utf-8") as f:
+        if f.tell() == 0:
+            f.write("# Historia wyboru finału\n\nWszystkie wersje zostają w wersje/.\n\n")
+        f.write(f"- {teraz()}: final = wersje/{nazwa}"
+                + (f" (wcześniej {poprzedni})" if poprzedni else "") + "\n")
     dane.update(status="gotowy", final=f"wersje/{nazwa}")
     if m:
         dane["wersja_biblii"] = int(m.group(1))
     dane["data_publikacji"] = dane.get("data_publikacji") or dzis()
     zapisz_yaml(odc / "odcinek.yaml", dane)
-    info(f"Final odcinka {odc.name}: {nazwa}. Pełna jakość (strona HTML):")
-    for p in obrazy_w(final):
-        info(f"  {p}")
-    _pliki_instagram(kat, odc)
+    info(f"Final odcinka {odc.name}: {nazwa} (oryginały w pełnej jakości do strony HTML: "
+         f"{final}).")
+    info()
+    gotowe_materialy(kat, odc)
 
 
 # --- pliki na Instagram: docięcie i skala PNG (czysty Python) -----------------
@@ -778,41 +897,116 @@ def do_formatu(zrodlo, cel, szer, wys):
     return {"z": (w, h), "uciete": (w - cw, h - ch), "powiekszenie": szer / cw}
 
 
-def cmd_instagram(a):
-    kat = znajdz_komiks(a.komiks)
-    odc = znajdz_odcinek(kat, a.odcinek)
-    _pliki_instagram(kat, odc)
+# --- gotowe/: jedno miejsce z zatwierdzonymi plikami do publikacji -------------
+# <komiks>/gotowe/<odcinek>/ zawiera wyłącznie aktualny final w formacie posta.
+# Zmiana finału podmienia ten folder w całości; wersje robocze zostają w wersje/,
+# a historia-finalu.md w odcinku pamięta każdy wybór.
+
+INFO_GOTOWE = "zatwierdzone.txt"
 
 
-def _pliki_instagram(kat, odc):
+def folder_gotowe(kat, odc):
+    return kat / "gotowe" / odc.name
+
+
+def _rozmiar_obrazu(sciezka):
+    try:
+        with open(sciezka, "rb") as f:
+            naglowek = f.read(24)
+        if naglowek[:8] == b"\x89PNG\r\n\x1a\n":
+            return struct.unpack(">II", naglowek[16:24])
+    except OSError:
+        pass
+    return None
+
+
+def komunikat_gotowe(kat, odc, cel, pliki):
+    """pliki: lista (nazwa, (szer, wys) albo None, [uwagi])."""
+    tytul = wczytaj_komiks(kat)["tytul"] or kat.name
+    od = czytaj_yaml(odc / "odcinek.yaml")
+    nr = odc.name.split("-", 1)[0]
+    n = len(pliki)
+    rozmiary = {r for _, r, _ in pliki}
+    rozszerzenia = {Path(nazwa).suffix.lstrip(".").upper() for nazwa, _, _ in pliki}
+    if len(rozmiary) == 1 and None not in rozmiary:
+        (szer, wys), = rozmiary
+        rozmiar = f"{'/'.join(sorted(rozszerzenia))} {szer} × {wys} px"
+    else:
+        rozmiar = f"{'/'.join(sorted(rozszerzenia))}, różne rozmiary (patrz uwagi)"
+    kolejnosc = "pojedynczy post" if n == 1 else f"kolejność publikacji: 1 → {n}"
+    linie = [
+        "ZATWIERDZONE — GOTOWE DO PUBLIKACJI",
+        f"Gotowe materiały do publikacji dla „{tytul}”, odcinek {nr}"
+        + (f" („{od['tytul']}”)" if od.get("tytul") else "") + ":",
+        str(cel),
+        f"{liczba(n, 'slajd', 'slajdy', 'slajdów')} • {rozmiar} • {kolejnosc}",
+    ]
+    linie += [f"  {i}. {nazwa}" for i, (nazwa, _, _) in enumerate(pliki, 1)]
+    uwagi = [f"UWAGA {nazwa}: {u}" for nazwa, _, us in pliki for u in us]
+    linie += uwagi
+    linie.append(f"Final: {od.get('final') or '?'} (wersje robocze zostają w {odc.relative_to(kat).as_posix()}/wersje/).")
+    return "\n".join(linie)
+
+
+def gotowe_materialy(kat, odc):
+    """Buduje od nowa <komiks>/gotowe/<odcinek>/ z finału i drukuje komunikat."""
     final = odc / "final"
     if not final.is_dir() or not obrazy_w(final):
         raise Blad(f"{odc.name}: nie ma jeszcze finału — najpierw odcinek-final.")
     fmt = wczytaj_komiks(kat)["format"]
     wym = wymiary(fmt)
-    if not wym:
-        info(f"UWAGA: format „{fmt}” w komiks.yaml nie wygląda jak 1080x1350 — pliki na Instagram pominięte.")
-        return
-    szer, wys = wym
-    ig = odc / "instagram"
-    if ig.exists():
-        shutil.rmtree(ig)
-    ig.mkdir()
-    info(f"Pliki na Instagram ({szer}×{wys} px), w kolejności karuzeli:")
+    cel = folder_gotowe(kat, odc)
+    if cel.exists():
+        shutil.rmtree(cel)
+    cel.mkdir(parents=True)
+    pliki = []
     for p in obrazy_w(final):
-        if p.suffix.lower() != ".png":
-            shutil.copy2(p, ig / p.name)
-            info(f"  {ig / p.name}  — UWAGA: to nie PNG, skopiowany bez docięcia do {szer}×{wys}.")
-            continue
-        r = do_formatu(p, ig / (p.stem + ".png"), szer, wys)
         uwagi = []
-        if r["uciete"][1]:
-            uwagi.append(f"ucięto {r['uciete'][1]} px z góry i dołu razem — sprawdź, czy dymki są całe")
-        if r["uciete"][0]:
-            uwagi.append(f"ucięto {r['uciete'][0]} px z boków razem — sprawdź brzegi kadrów")
-        if r["powiekszenie"] > 1.15:
-            uwagi.append(f"obraz był mały ({r['z'][0]}×{r['z'][1]}), powiększony — może być miękki")
-        info(f"  {ig / (p.stem + '.png')}" + (f"  — {'; '.join(uwagi)}" if uwagi else ""))
+        if wym and p.suffix.lower() == ".png":
+            szer, wys = wym
+            nazwa = p.stem + ".png"
+            r = do_formatu(p, cel / nazwa, szer, wys)
+            if r["uciete"][1]:
+                uwagi.append(f"ucięto {r['uciete'][1]} px z góry i dołu razem — sprawdź, czy dymki są całe")
+            if r["uciete"][0]:
+                uwagi.append(f"ucięto {r['uciete'][0]} px z boków razem — sprawdź brzegi kadrów")
+            if r["powiekszenie"] > 1.15:
+                uwagi.append(f"obraz był mały ({r['z'][0]}×{r['z'][1]}), powiększony — może być miękki")
+        else:
+            nazwa = p.name
+            shutil.copy2(p, cel / nazwa)
+            uwagi.append(f"format „{fmt}” w komiks.yaml nie wygląda jak 1080x1350 — skopiowany bez docięcia"
+                         if not wym else "to nie PNG — skopiowany bez docięcia")
+        pliki.append((nazwa, _rozmiar_obrazu(cel / nazwa), uwagi))
+    tekst = komunikat_gotowe(kat, odc, cel, pliki)
+    (cel / INFO_GOTOWE).write_text(f"{tekst}\nZatwierdzono: {teraz()}\n", encoding="utf-8")
+    info(tekst)
+    return cel
+
+
+def cmd_instagram(a):
+    kat = znajdz_komiks(a.komiks)
+    gotowe_materialy(kat, znajdz_odcinek(kat, a.odcinek))
+
+
+def cmd_gotowe(a):
+    kat = znajdz_komiks(a.komiks)
+    if a.odcinek:
+        lista = [znajdz_odcinek(kat, a.odcinek)]
+    else:
+        lista = [p for p in odcinki(kat) if czytaj_yaml(p / "odcinek.yaml").get("final")]
+        if not lista:
+            info(f"„{wczytaj_komiks(kat)['tytul']}”: nie ma jeszcze zatwierdzonych odcinków.")
+            return 0
+    for i, odc in enumerate(lista):
+        if i:
+            info()
+        opis = folder_gotowe(kat, odc) / INFO_GOTOWE
+        if opis.is_file():
+            info(opis.read_text(encoding="utf-8").rstrip())
+        else:  # odcinek zatwierdzony przed wersją 0.3 — robimy gotowe/ teraz
+            gotowe_materialy(kat, odc)
+    return 0
 
 
 # --- sprawdzanie ---------------------------------------------------------------
@@ -871,9 +1065,10 @@ def cmd_sprawdz(a):
 
 
 def cmd_stan(a):
-    korzen = Path(a.folder or ".").resolve()
-    komiksy = [korzen] if (korzen / "komiks.yaml").is_file() else \
-        sorted(p for p in korzen.iterdir() if (p / "komiks.yaml").is_file())
+    korzen = folder_komiksow(a.folder)
+    komiksy = komiksy_w(korzen)
+    if not a.folder and biblioteka():
+        info(f"Biblioteka komiksów: {korzen}")
     if not komiksy:
         info(f"W {korzen} nie ma jeszcze żadnego komiksu.")
         if not (korzen / "AGENTS.md").exists():
@@ -885,6 +1080,8 @@ def cmd_stan(a):
         gotowe = sum(1 for p in lista if czytaj_yaml(p / "odcinek.yaml").get("final"))
         info(f"- {dane['tytul']} ({kat.name}): stan {dane['stan']}, biblia v{wersja_biblii(kat)}, "
              f"odcinki {len(lista)} (gotowe {gotowe}), format {dane['format']}")
+        if (kat / "gotowe").is_dir():
+            info(f"  gotowe do publikacji: {kat / 'gotowe'}")
         otwarte = [p.name for p in _wnioski(kat) if _naglowek_wniosku(p)[0].get("status") == "propozycja"]
         if otwarte:
             info(f"  otwarty wniosek o zmianę: {', '.join(otwarte)}")
@@ -1142,20 +1339,27 @@ def parser():
         s = sub.add_parser(nazwa, help=pomoc, description=pomoc)
         s.set_defaults(funkcja=funkcja)
         if komiks:
-            s.add_argument("--komiks", help="folder komiksu (domyślnie bieżący lub nadrzędny)")
+            s.add_argument("--komiks", help="folder komiksu albo jego nazwa w bibliotece "
+                                            "(domyślnie bieżący, nadrzędny lub jedyny w bibliotece)")
         return s
 
+    s = dodaj("biblioteka", cmd_biblioteka,
+              "pokaż albo ustaw stały folder ze wszystkimi komiksami (bibliotekę)", komiks=False)
+    s.add_argument("--ustaw", metavar="FOLDER", help="od teraz komiksy w tym folderze")
+    s.add_argument("--wylacz", action="store_true", help="wróć do pracy w bieżącym folderze")
+
+    nadpisz = "jednorazowo ten folder zamiast biblioteki (domyślnie biblioteka albo bieżący)"
     s = dodaj("przygotuj", cmd_przygotuj, "zapisz AGENTS.md w folderze z komiksami", komiks=False)
-    s.add_argument("--folder")
+    s.add_argument("--folder", "--biblioteka", dest="folder", help=nadpisz)
     s.add_argument("--nadpisz", action="store_true")
 
-    s = dodaj("stan", cmd_stan, "pokaż komiksy w folderze i ich etap", komiks=False)
-    s.add_argument("--folder")
+    s = dodaj("stan", cmd_stan, "pokaż komiksy w bibliotece i ich etap", komiks=False)
+    s.add_argument("--folder", "--biblioteka", dest="folder", help=nadpisz)
 
     s = dodaj("nowy", cmd_nowy, "załóż nowy komiks (faza projektu)", komiks=False)
     s.add_argument("--tytul", required=True)
     s.add_argument("--nazwa", help="nazwa folderu (domyślnie z tytułu)")
-    s.add_argument("--folder", help="folder z komiksami (domyślnie bieżący)")
+    s.add_argument("--folder", "--biblioteka", dest="folder", help=nadpisz)
     s.add_argument("--format")
     s.add_argument("--autor")
     s.add_argument("--jezyk", help="język dialogów, np. pl")
@@ -1208,8 +1412,11 @@ def parser():
     s.add_argument("odcinek")
     s.add_argument("wersja", help="np. v2")
 
+    s = dodaj("gotowe", cmd_gotowe, "pokaż, gdzie są zatwierdzone pliki do publikacji")
+    s.add_argument("odcinek", nargs="?", help="numer odcinka (domyślnie wszystkie zatwierdzone)")
+
     s = dodaj("instagram", cmd_instagram,
-              "zrób od nowa pliki finału w dokładnym formacie posta (docięcie + skala)")
+              "zrób od nowa gotowe/ z finału w dokładnym formacie posta (docięcie + skala)")
     s.add_argument("odcinek")
 
     s = dodaj("obraz", cmd_obraz, "skopiuj ostatnio wygenerowany obraz pod wskazaną ścieżkę", komiks=False)

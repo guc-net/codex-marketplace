@@ -14,7 +14,9 @@ Zajmie to ok. 15 minut. Wystarczy zrobić raz — kolejne wersje plugin zapropon
 ## 1. Folder na komiksy
 
 Utwórz zwykły folder, np. `Dokumenty/Komiksy`. Tu będą wszystkie Twoje komiksy:
-biblia postaci, odcinki, wszystkie wersje obrazów i strona.
+biblia postaci, odcinki, wszystkie wersje obrazów, gotowe pliki i strona. Plugin
+zapamięta go jako **bibliotekę** (zapyta o to w pierwszej rozmowie), więc kolejne
+komiksy trafią tutaj, nawet jeśli później otworzysz w Codexie inny folder.
 
 ## 2. Otwórz ten folder w Codexie
 

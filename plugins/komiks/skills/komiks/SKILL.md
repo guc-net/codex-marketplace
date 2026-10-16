@@ -36,7 +36,25 @@ po co, i poproś o zgodę. `python3 KOMIKS --help` pokazuje wszystkie polecenia.
      zadziałała”. Po „nie” pracuj dalej; zapytasz jutro.
    - `NIE SPRAWDZONO` (brak sieci w piaskownicy) → możesz raz poprosić o zgodę na
      uruchomienie z dostępem do sieci; jeśli odmowa, pomiń bez komentarza.
-2. **Folder** — jeśli w bieżącym folderze nie ma `AGENTS.md`, uruchom `KOMIKS przygotuj`.
+2. **Biblioteka** — `KOMIKS biblioteka`. To stały folder ze wszystkimi komiksami
+   użytkownika; działa w każdej rozmowie, niezależnie od otwartego folderu.
+   - `BIBLIOTEKA: <folder>` → pracujesz tam. `stan` i `nowy` same jej używają, a komiks
+     wskazujesz samą nazwą: `--komiks moja-seria`. Nie twórz komiksów w bieżącym
+     folderze rozmowy.
+   - `NIE USTAWIONO` → jeśli w bieżącym folderze są już komiksy (`KOMIKS stan`), pracuj
+     tu jak dotąd i raz zaproponuj: „Zapamiętać ten folder jako Twoją bibliotekę
+     komiksów?”. Jeśli komiksów tu nie ma (zwłaszcza w folderze tymczasowym), **przed
+     założeniem komiksu** zapytaj, gdzie trzymać komiksy, z gotową odpowiedzią
+     `~/Dokumenty/Komiksy` (Windows: `Dokumenty\Komiksy`). Po odpowiedzi
+     `KOMIKS biblioteka --ustaw <folder>`.
+     Jeśli woli bez biblioteki — pracuj w bieżącym folderze; gdy nie ma w nim `AGENTS.md`,
+     uruchom `KOMIKS przygotuj`.
+   - `BRAK FOLDERU` → powiedz, że folder biblioteki zniknął (odłączony dysk?), i zapytaj,
+     czy go podłączyć, czy ustawić nowy.
+   - Jednorazowo gdzie indziej („ten komiks zrób w …”): `--biblioteka <folder>`
+     przy `nowy`/`stan`, ustawienie zostaje bez zmian. Zmiana na stałe: `--ustaw`.
+   - Biblioteka leży zwykle poza folderem rozmowy: jeśli zapis wymaga zgody
+     (piaskownica), poproś o nią raz, jednym zdaniem.
 3. **Stan** — `KOMIKS stan` i powiedz jednym zdaniem, co jest (tytuł, etap, ile odcinków).
 4. **Kontrola biblii** — dla komiksu w produkcji uruchom `KOMIKS sprawdz --komiks <folder>`.
    Jeśli zgłasza zmiany bez zatwierdzenia, powiedz o tym od razu i zaproponuj:
@@ -58,6 +76,11 @@ z repozytorium github.com/guc-net/codex-marketplace.
   dymków, stałe miejsce) w komiksie w produkcji → skill **komiks-zmiana**.
 - „Pokaż stronę / spis” → `KOMIKS strona --komiks <folder>` i podaj ścieżkę do
   `strona/index.html` (otwiera się dwuklikiem).
+- „Gdzie są gotowe pliki?” → `KOMIKS gotowe [nr] --komiks <folder>` i przekaż komunikat
+  „ZATWIERDZONE — GOTOWE DO PUBLIKACJI” bez skracania ścieżki.
+- „Gdzie są moje komiksy / zmień folder” → `KOMIKS biblioteka` / `--ustaw <folder>`.
+  Istniejących komiksów skrypt nie przenosi — powiedz, że można przenieść ich foldery
+  do nowej biblioteki zwykłym przeciągnięciem.
 
 ## Zasady stałe
 
