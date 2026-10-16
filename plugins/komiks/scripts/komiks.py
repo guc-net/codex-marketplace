@@ -30,10 +30,23 @@ SUROWY_URL = "https://raw.githubusercontent.com/" + REPO + "/main/plugins/komiks
 OBRAZY = {".png", ".jpg", ".jpeg", ".webp"}
 TEKSTOWE = {".md", ".txt", ".yaml", ".yml", ""}
 
+# Arkusz obrotu postaci: każdy widok to osobny obraz w biblia/postaci/<postać>/widoki/.
+WIDOKI = {
+    "przod": "przód",
+    "tyl": "tył",
+    "profil-lewy": "lewy profil",
+    "profil-prawy": "prawy profil",
+    "trzy-czwarte": "3/4",
+}
+WIDOKI_DODATKOWE = {"gora": "z góry", "dol": "z dołu"}  # tylko na życzenie (komiks.yaml)
+
 DOMYSLNY_KOMIKS = {
     "tytul": "",
     "jezyk": "pl",
     "stan": "projekt",
+    "kanal": "instagram",
+    "rytm": "",                     # np. "1 odcinek w tygodniu"
+    "widoki_dodatkowe": "",         # "gora,dol" = postaci także z góry i z dołu
     # Odpowiedzi na otwarte pytania zmieniają tylko te pola:
     "format": "1080x1350",          # Instagram 4:5; 1080x1080 dla 1:1
     "plansze_na_post": 1,           # >1 = karuzela
@@ -213,8 +226,37 @@ i mówi, na jakim etapie jest każdy komiks).
 - Rozmawiaj po polsku, prostym językiem, bez żargonu technicznego.
 """
 
+SZKIELET_STYLU = """# Styl
+
+(nazwa stylu i skąd: wybrana próbka, ewentualnie mieszanka dwóch)
+
+## Kreska
+
+## Paleta
+
+(5–8 kolorów z kodami, np. #F4A259 marchewkowy; kolor tła)
+
+## Światło i cień
+
+## Faktura i wykończenie
+
+## Kadrowanie
+
+(typowa odległość kamery, wysokość horyzontu)
+
+## Liternictwo dymków
+
+## Blok stylu
+
+(2–4 zdania, które idą DOSŁOWNIE na początek każdego promptu; nie zmieniaj ich słów)
+
+## Nie rób
+
+(lista negatywów, np. fotorealizm; plastikowy połysk; gradienty jak z AI; inne style)
+"""
+
 SZKIELET_BIBLII = {
-    "styl.md": "# Styl\n\n(kreska, paleta, światło, faktura; czego unikać)\n",
+    "styl.md": SZKIELET_STYLU,
     "kadry.md": "# Kadry\n\n(typowe układy plansz, format, kadr otwierający i zamykający)\n",
     "dymki.md": "# Dymki\n\nTryb: tekst w obrazie.\n\n(długość kwestii, kto mówi pierwszy, styl liter)\n",
     "ton.md": "# O czym jest ten komiks\n\n(temat, odbiorca, morał, czego nie mówimy)\n",
@@ -243,7 +285,7 @@ def cmd_nowy(a):
                 "historia-biblii", "odcinki", "projekt"]:
         (folder / pod).mkdir(parents=True, exist_ok=True)
     dane = dict(DOMYSLNY_KOMIKS, tytul=tytul, utworzono=dzis())
-    for k in ("format", "autor"):
+    for k in ("format", "autor", "jezyk", "kanal", "rytm", "plansze_na_post", "widoki_dodatkowe"):
         if getattr(a, k):
             dane[k] = getattr(a, k)
     zapisz_yaml(folder / "komiks.yaml", dane, "Ustawienia komiksu. Stan zmienia skrypt, resztę możesz poprawić.")
@@ -261,12 +303,20 @@ def cmd_postac(a):
     if folder.exists():
         raise Blad(f"Postać już istnieje: {folder}")
     (folder / "pozy").mkdir(parents=True)
+    (folder / "widoki").mkdir()
+    widoki = {**WIDOKI, **{k: v for k, v in WIDOKI_DODATKOWE.items() if k in _dodatkowe(kat)}}
     (folder / "postac.md").write_text(
-        f"# {a.imie}\n\n## Wygląd\n\n## Ubiór\n\n## Charakter i sposób mówienia\n\n"
-        "## Czego nie robi\n\n## Pliki\n\n- arkusz.png — przód / bok / tył\n"
+        f"# {a.imie}\n\n## Wygląd\n\n(wzrost względem innych postaci, proporcje w głowach, "
+        "kształt twarzy, włosy)\n\n## Paleta\n\n(kody kolorów: skóra, włosy, oczy, ubranie)\n\n"
+        "## Znaki szczególne\n\n(to, co ma być widać ZAWSZE, np. pieprzyk nad lewą brwią)\n\n"
+        "## Ubiór\n\n## Charakter i sposób mówienia\n\n## Czego nie robi\n\n"
+        "## Blok postaci\n\n(1–3 zdania do każdego promptu, zawsze tymi samymi słowami)\n\n"
+        "## Pliki\n\n- arkusz.png — wszystkie widoki obok siebie na jednym obrazie\n" +
+        "".join(f"- widoki/{k}.png — {v}\n" for k, v in widoki.items()) +
         "- mimika.png — zestaw min\n- pozy/ — typowe pozy, każda z opisem .md\n",
         encoding="utf-8")
     info(f"Dodano postać {a.imie}: {folder.relative_to(kat)}")
+    info("Widoki do wygenerowania: " + ", ".join(f"widoki/{k}.png" for k in widoki))
 
 
 def cmd_miejsce(a):
@@ -278,6 +328,29 @@ def cmd_miejsce(a):
     plik.write_text(f"# {a.nazwa_miejsca}\n\n(opis tła; obraz obok pod tą samą nazwą .png)\n",
                     encoding="utf-8")
     info(f"Dodano miejsce: {plik.relative_to(kat)}")
+
+
+def _dodatkowe(kat):
+    return [w.strip() for w in str(wczytaj_komiks(kat).get("widoki_dodatkowe") or "").split(",")
+            if w.strip() in WIDOKI_DODATKOWE]
+
+
+def braki_widokow(kat):
+    """{postać: [brakujące widoki]} dla postaci w biblii; pusty słownik = komplet."""
+    wymagane = list(WIDOKI) + _dodatkowe(kat)
+    braki = {}
+    for postac in sorted((kat / "biblia" / "postaci").glob("*/postac.md")):
+        folder = postac.parent / "widoki"
+        jest = {p.stem for p in obrazy_w(folder)} if folder.is_dir() else set()
+        brak = [w for w in wymagane if w not in jest]
+        if brak:
+            braki[postac.parent.name] = brak
+    return braki
+
+
+def _opis_brakow(braki):
+    nazwy = {**WIDOKI, **WIDOKI_DODATKOWE}
+    return "; ".join(f"{p}: " + ", ".join(nazwy[w] for w in b) for p, b in braki.items())
 
 
 def _wymagaj_projektu(kat, czynnosc):
@@ -296,6 +369,10 @@ def cmd_start_produkcji(a):
              if not (kat / "biblia" / n).is_file()]
     if braki:
         raise Blad("Brakuje plików biblii: " + ", ".join(braki))
+    widoki = braki_widokow(kat)
+    if widoki:
+        raise Blad("Arkusze postaci są niepełne (brakuje widoków w widoki/): " + _opis_brakow(widoki) +
+                   ". Wygeneruj je z arkuszem i wzorem stylu na wejściu.")
     (kat / "biblia" / "WERSJA").write_text("1\n", encoding="utf-8")
     kopiuj_drzewo(kat / "biblia", kat / "historia-biblii" / "v1")
     dane["stan"] = "produkcja"
@@ -642,8 +719,92 @@ def cmd_stan(a):
         if otwarte:
             info(f"  otwarty wniosek o zmianę: {', '.join(otwarte)}")
         if dane["stan"] == "projekt":
+            probki = kat / "projekt" / "style"
             info(f"  postaci: {len(list((kat / 'biblia' / 'postaci').glob('*/postac.md')))}, "
-                 f"wzory stylu: {len(obrazy_w(kat / 'biblia' / 'styl')) if (kat / 'biblia' / 'styl').is_dir() else 0}")
+                 f"wzory stylu: {len(obrazy_w(kat / 'biblia' / 'styl')) if (kat / 'biblia' / 'styl').is_dir() else 0}, "
+                 f"próbki stylów: {len(obrazy_w(probki)) if probki.is_dir() else 0}")
+            braki = braki_widokow(kat)
+            if braki:
+                info(f"  brakujące widoki postaci: {_opis_brakow(braki)}")
+
+
+# --- prompt: stały blok stylu, postaci i referencje --------------------------
+
+def sekcja(plik, tytul):
+    """Treść sekcji „## tytul” z pliku Markdown (bez nawiasowych podpowiedzi szkieletu)."""
+    if not plik.is_file():
+        return ""
+    m = re.search(rf"^##\s+{re.escape(tytul)}\s*$(.*?)(?=^##\s|\Z)",
+                  plik.read_text(encoding="utf-8"), re.M | re.S)
+    if not m:
+        return ""
+    return re.sub(r"^\(.*\)$", "", m.group(1).strip(), flags=re.M).strip()
+
+
+def cmd_prompt_baza(a):
+    kat = znajdz_komiks(a.komiks)
+    biblia = kat / "biblia"
+    dane = wczytaj_komiks(kat)
+    referencje, uwagi, linie = [], [], []
+
+    def ref(sciezka, opis):
+        if sciezka.is_file():
+            referencje.append((sciezka, opis))
+
+    for p in obrazy_w(biblia / "styl") if (biblia / "styl").is_dir() else []:
+        ref(p, "wzór stylu — tak ma wyglądać kreska, kolor i światło")
+    blok = sekcja(biblia / "styl.md", "Blok stylu")
+    if not blok:
+        uwagi.append("styl.md nie ma sekcji „Blok stylu” — dopisz 2–4 stałe zdania o stylu.")
+    zle = [w for w in a.widok or [] if w not in WIDOKI and w not in WIDOKI_DODATKOWE]
+    if zle:
+        raise Blad("Nieznany widok: " + ", ".join(zle) + ". Są: " + ", ".join([*WIDOKI, *WIDOKI_DODATKOWE]))
+    for nazwa in a.postac or []:
+        folder = biblia / "postaci" / slug(nazwa)
+        if not (folder / "postac.md").is_file():
+            raise Blad(f"Nie ma postaci „{nazwa}” w biblii. Są: " + (", ".join(
+                p.parent.name for p in sorted((biblia / "postaci").glob("*/postac.md"))) or "brak"))
+        imie = folder.name
+        ref(folder / "arkusz.png", f"arkusz postaci {imie} — wygląd, proporcje, kolory")
+        for w, opis in {**WIDOKI, **WIDOKI_DODATKOWE}.items():
+            if w in (a.widok or []):
+                ref(folder / "widoki" / f"{w}.png", f"{imie} — widok {opis}")
+        opis = sekcja(folder / "postac.md", "Blok postaci") or sekcja(folder / "postac.md", "Wygląd")
+        if opis:
+            linie.append(f"{imie}: {opis}")
+        else:
+            uwagi.append(f"{imie}: postac.md nie ma „Blok postaci” — opis postaci weź z arkusza.")
+    for nazwa in a.miejsce or []:
+        obraz = next((p for p in obrazy_w(biblia / "miejsca") if p.stem == slug(nazwa)), None) \
+            if (biblia / "miejsca").is_dir() else None
+        if obraz:
+            ref(obraz, f"miejsce {obraz.stem} — tło")
+        else:
+            uwagi.append(f"miejsce {slug(nazwa)}: brak obrazu tła w biblia/miejsca/.")
+    nie_rob = sekcja(biblia / "styl.md", "Nie rób")
+
+    info("OBRAZY NA WEJŚCIU (w tej kolejności):")
+    for i, (p, opis) in enumerate(referencje, 1):
+        info(f"  {i}. {p.relative_to(kat).as_posix()} — {opis}")
+    if not referencje:
+        info("  (brak — bez obrazów wzorcowych postaci i styl będą się zmieniać)")
+    info("")
+    info("POCZĄTEK PROMPTU (dosłownie, bez zmian):")
+    if blok:
+        info(blok)
+    info("Postaci wyglądają DOKŁADNIE jak na arkuszach referencyjnych: te same proporcje, kolory, "
+         "ubranie i znaki szczególne. Nie zmieniaj stylu względem wzoru stylu.")
+    for linia in linie:
+        info(linia)
+    w, h = (dane["format"].split("x") + ["", ""])[:2]
+    info(f"Format obrazu: {w}×{h} px (pionowo)." if w.isdigit() and h.isdigit() and int(h) > int(w)
+         else f"Format obrazu: {dane['format']}.")
+    if nie_rob:
+        info("Nie rób: " + "; ".join(l.lstrip("-* ").strip() for l in nie_rob.splitlines() if l.strip()))
+    info("")
+    info("DALEJ: opis kadrów i dialog do dymków dosłownie.")
+    for u in uwagi:
+        info(f"UWAGA: {u}")
 
 
 # --- strona HTML ---------------------------------------------------------------
@@ -821,6 +982,11 @@ def parser():
     s.add_argument("--folder", help="folder z komiksami (domyślnie bieżący)")
     s.add_argument("--format")
     s.add_argument("--autor")
+    s.add_argument("--jezyk", help="język dialogów, np. pl")
+    s.add_argument("--kanal", help="gdzie publikujesz, np. instagram")
+    s.add_argument("--rytm", help="jak często odcinek, np. „1 w tygodniu”")
+    s.add_argument("--plansze-na-post", type=int, help=">1 = karuzela")
+    s.add_argument("--widoki-dodatkowe", help="„gora,dol” = postaci także z góry i z dołu")
 
     s = dodaj("postac", cmd_postac, "dodaj postać do biblii (faza projektu)")
     s.add_argument("--imie", required=True)
@@ -871,6 +1037,12 @@ def parser():
     s.add_argument("--plik", help="konkretny plik zamiast najnowszego")
     s.add_argument("--z-katalogu", default="~/.codex/generated_images")
     s.add_argument("--nadpisz", action="store_true")
+
+    s = dodaj("prompt-baza", cmd_prompt_baza,
+              "stały początek promptu i lista obrazów na wejściu (styl, postaci, miejsce)")
+    s.add_argument("--postac", action="append", help="postać w kadrze; powtórz dla kolejnych")
+    s.add_argument("--widok", action="append", help="dołóż widok z arkusza obrotu, np. tyl")
+    s.add_argument("--miejsce", action="append", help="miejsce z biblii, np. kuchnia")
 
     dodaj("sprawdz", cmd_sprawdz, "sprawdź, czy biblia nie zmieniła się bez zgody")
     dodaj("strona", cmd_strona, "zbuduj od zera stronę HTML komiksu")
