@@ -14,7 +14,7 @@ sys.path.insert(0, str(REPO / "plugins" / "komiks" / "scripts"))
 sys.path.insert(0, str(REPO / "tests"))
 
 import komiks  # noqa: E402
-from png import png  # noqa: E402
+from png import png, rozmiar_png  # noqa: E402
 
 FIXTURE = REPO / "tests" / "fixture" / "przyklad"
 
@@ -192,6 +192,8 @@ class TestCalyPrzebieg(ZFolderem):
         self.assertTrue((odc / "wersje" / "v2" / "plansza-1.png").is_file())
         self.assertEqual(uruchom("odcinek-final", "1", "v2", "--komiks", kat)[0], 0)
         self.assertEqual((odc / "final" / "plansza-1.png").read_bytes(), (gen / "b.png").read_bytes())
+        # plik na Instagram ma dokładnie format z komiks.yaml
+        self.assertEqual(rozmiar_png(odc / "instagram" / "plansza-1.png"), (1080, 1350))
         self.assertEqual(komiks.czytaj_yaml(odc / "odcinek.yaml")["final"], "wersje/v2")
 
         self.assertEqual(uruchom("obraz", "--do", kat / "projekt" / "probna", "--z-katalogu",
@@ -204,6 +206,64 @@ class TestCalyPrzebieg(ZFolderem):
         kod, wyjscie = uruchom("stan", "--folder", self.tmp)
         self.assertIn("Żółta łódź", wyjscie)
         self.assertIn("gotowe 1", wyjscie)
+
+
+class TestFormatPosta(ZFolderem):
+    def test_pion_2_3_dociety_do_4_5(self):
+        # generator daje 2:3 z ciemnym paskiem u góry i dołu; po docięciu do 4:5 pasków brak
+        png(self.tmp / "a.png", 64, 96, (200, 100, 50))
+        r = komiks.do_formatu(self.tmp / "a.png", self.tmp / "b.png", 40, 50)
+        self.assertEqual(r["uciete"], (0, 16))
+        w, h, wiersze = komiks._czytaj_png(self.tmp / "b.png")
+        self.assertEqual((w, h), (40, 50))
+        self.assertEqual(tuple(wiersze[0][:3]), (200, 100, 50))
+        self.assertEqual(tuple(wiersze[-1][-3:]), (200, 100, 50))
+
+    def test_poziom_dociety_do_kwadratu(self):
+        png(self.tmp / "a.png", 96, 64, (10, 20, 30))
+        r = komiks.do_formatu(self.tmp / "a.png", self.tmp / "b.png", 32, 32)
+        self.assertEqual((r["uciete"], komiks._czytaj_png(self.tmp / "b.png")[:2]), ((32, 0), (32, 32)))
+
+    def test_filtry_png_i_alfa(self):
+        # PNG z filtrami Sub/Up/Avg/Paeth i kanałem alfa — jak z generatora
+        w, h = 7, 5
+        piks = [[(x * 30 % 256, y * 50 % 256, (x * y * 17) % 256, 255 if x else 0) for x in range(w)]
+                for y in range(h)]
+        surowe, poprz = b"", [0] * (w * 4)
+        for y, rzad in enumerate(piks):
+            linia = [v for p in rzad for v in p]
+            f = y % 5
+            out = []
+            for i, v in enumerate(linia):
+                a = linia[i - 4] if i >= 4 else 0
+                b, c = poprz[i], (poprz[i - 4] if i >= 4 else 0)
+                pa, pb, pc = abs(b - c), abs(a - c), abs(a + b - 2 * c)
+                pr = [0, a, b, (a + b) // 2, a if pa <= pb and pa <= pc else b if pb <= pc else c][f]
+                out.append((v - pr) & 255)
+            surowe += bytes([f] + out)
+            poprz = linia
+        import struct, zlib
+        def blok(typ, dane):
+            return struct.pack(">I", len(dane)) + typ + dane + struct.pack(">I", zlib.crc32(typ + dane))
+        (self.tmp / "f.png").write_bytes(b"\x89PNG\r\n\x1a\n" + blok(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 6, 0, 0, 0))
+                                         + blok(b"IDAT", zlib.compress(surowe)) + blok(b"IEND", b""))
+        _, _, wiersze = komiks._czytaj_png(self.tmp / "f.png")
+        for y in range(h):
+            self.assertEqual(tuple(wiersze[y][3:6]), piks[y][1][:3])
+            self.assertEqual(tuple(wiersze[y][:3]), (255, 255, 255))  # przezroczysty → białe tło
+
+    def test_polecenie_instagram_i_format_1_1(self):
+        kat = Path(shutil.copytree(FIXTURE, self.tmp / "k"))
+        dane = komiks.czytaj_yaml(kat / "komiks.yaml")
+        dane["format"] = "1080x1080"
+        komiks.zapisz_yaml(kat / "komiks.yaml", dane)
+        odc = next(p for p in komiks.odcinki(kat) if (p / "final").is_dir())
+        kod, wyjscie = uruchom("instagram", odc.name, "--komiks", kat)
+        self.assertEqual(kod, 0, wyjscie)
+        for p in komiks.obrazy_w(odc / "instagram"):
+            self.assertEqual(rozmiar_png(p), (1080, 1080))
+        kod, wyjscie = uruchom("prompt-baza", "--komiks", kat)
+        self.assertIn("kwadratowy, proporcje 1:1", wyjscie)
 
 
 class TestProjektV02(ZFolderem):
@@ -262,7 +322,7 @@ class TestProjektV02(ZFolderem):
         self.assertIn("Ligne claire, równa czarna kontur 2 px", wyjscie)
         self.assertIn("ola: Ola, 8 lat, rude warkocze.", wyjscie)
         self.assertIn("Nie rób: fotorealizm; plastikowy połysk", wyjscie)
-        self.assertIn("1080×1350", wyjscie)
+        self.assertIn("pionowy, proporcje 4:5", wyjscie)
         self.assertNotIn("UWAGA", wyjscie)
         self.assertEqual(uruchom("prompt-baza", "--komiks", kat, "--postac", "Ola", "--widok", "bok")[0], 1)
 

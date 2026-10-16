@@ -14,12 +14,15 @@ import difflib
 import filecmp
 import html
 import json
+import math
 import os
 import re
 import shutil
+import struct
 import sys
 import unicodedata
 import urllib.request
+import zlib
 from pathlib import Path
 
 PLUGIN_ROOT = Path(__file__).resolve().parent.parent
@@ -640,9 +643,176 @@ def cmd_odcinek_final(a):
         dane["wersja_biblii"] = int(m.group(1))
     dane["data_publikacji"] = dane.get("data_publikacji") or dzis()
     zapisz_yaml(odc / "odcinek.yaml", dane)
-    info(f"Final odcinka {odc.name}: {nazwa}. Gotowe pliki:")
+    info(f"Final odcinka {odc.name}: {nazwa}. Pełna jakość (strona HTML):")
     for p in obrazy_w(final):
         info(f"  {p}")
+    _pliki_instagram(kat, odc)
+
+
+# --- pliki na Instagram: docięcie i skala PNG (czysty Python) -----------------
+# Generator obrazów w Codexie nie daje dokładnych 1080×1350: rozmiar wybiera sam
+# (np. 1122×1402 albo 1024×1536). Final docinamy więc do proporcji posta (środek)
+# i skalujemy do formatu z komiks.yaml.
+
+def wymiary(format_):
+    m = re.fullmatch(r"\s*(\d+)\s*[x×]\s*(\d+)\s*", str(format_ or ""))
+    return (int(m.group(1)), int(m.group(2))) if m else None
+
+
+def _czytaj_png(sciezka):
+    """Zwraca (szer, wys, wiersze RGB). PNG 8/16 bit, bez przeplotu; alfa na białym tle."""
+    d = Path(sciezka).read_bytes()
+    if d[:8] != b"\x89PNG\r\n\x1a\n":
+        raise Blad(f"{Path(sciezka).name} nie jest plikiem PNG.")
+    i, idat, paleta, naglowek = 8, [], b"", None
+    while i + 8 <= len(d):
+        n, typ = struct.unpack(">I4s", d[i:i + 8])
+        dane = d[i + 8:i + 8 + n]
+        i += 12 + n
+        if typ == b"IHDR":
+            naglowek = struct.unpack(">IIBBBBB", dane)
+        elif typ == b"PLTE":
+            paleta = dane
+        elif typ == b"IDAT":
+            idat.append(dane)
+        elif typ == b"IEND":
+            break
+    w, h, glebia, typ_k, _, _, przeplot = naglowek
+    kanaly = {0: 1, 2: 3, 3: 1, 4: 2, 6: 4}.get(typ_k)
+    if przeplot or kanaly is None or glebia not in (8, 16) or (typ_k == 3 and glebia != 8):
+        raise Blad(f"{Path(sciezka).name}: nieobsługiwany rodzaj PNG.")
+    bpp = kanaly * glebia // 8
+    stride = w * bpp
+    surowe = zlib.decompress(b"".join(idat))
+    poprz, wiersze = bytearray(stride), []
+    for y in range(h):
+        p = y * (stride + 1)
+        f, linia = surowe[p], bytearray(surowe[p + 1:p + 1 + stride])
+        if f == 1:
+            for x in range(bpp, stride):
+                linia[x] = (linia[x] + linia[x - bpp]) & 255
+        elif f == 2:
+            linia = bytearray((a + b) & 255 for a, b in zip(linia, poprz))
+        elif f == 3:
+            for x in range(stride):
+                linia[x] = (linia[x] + (((linia[x - bpp] if x >= bpp else 0) + poprz[x]) >> 1)) & 255
+        elif f == 4:
+            for x in range(stride):
+                a = linia[x - bpp] if x >= bpp else 0
+                b = poprz[x]
+                c = poprz[x - bpp] if x >= bpp else 0
+                pa, pb, pc = abs(b - c), abs(a - c), abs(a + b - 2 * c)
+                linia[x] = (linia[x] + (a if pa <= pb and pa <= pc else b if pb <= pc else c)) & 255
+        wiersze.append(linia)
+        poprz = linia
+    wynik = []
+    for linia in wiersze:
+        if glebia == 16:
+            linia = linia[0::2]
+        if typ_k == 3:
+            linia = bytearray(b"".join(paleta[3 * k:3 * k + 3] for k in linia))
+        elif typ_k in (4, 6):
+            n = kanaly - 1
+            alfa = linia[n::kanaly]
+            kolor = bytearray(len(linia) // kanaly * n)
+            for c in range(n):
+                kolor[c::n] = linia[c::kanaly]
+            if alfa.count(255) != len(alfa):
+                kolor = bytearray((v * a + 255 * (255 - a)) // 255
+                                  for v, a in zip(kolor, (a for a in alfa for _ in range(n))))
+            linia = kolor
+        if typ_k in (0, 4):
+            linia = bytearray(v for v in linia for _ in range(3))
+        wynik.append(linia)
+    return w, h, wynik
+
+
+def _zapisz_png(sciezka, w, h, wiersze):
+    def blok(typ, dane):
+        return struct.pack(">I", len(dane)) + typ + dane + struct.pack(">I", zlib.crc32(typ + dane) & 0xFFFFFFFF)
+    Path(sciezka).write_bytes(
+        b"\x89PNG\r\n\x1a\n" + blok(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0)) +
+        blok(b"IDAT", zlib.compress(b"".join(b"\x00" + bytes(r) for r in wiersze), 6)) + blok(b"IEND", b""))
+
+
+def _wagi(poczatek, dlugosc, cel):
+    """Filtr trójkątny (jak w programach graficznych): przy zmniejszaniu uśrednia."""
+    skala = dlugosc / cel
+    zasieg = max(1.0, skala)
+    wynik = []
+    for j in range(cel):
+        srodek = poczatek + (j + 0.5) * skala
+        lo = max(poczatek, int(srodek - zasieg))
+        hi = min(poczatek + dlugosc, int(srodek + zasieg) + 1)
+        ws = [max(0.0, 1 - abs((k + 0.5 - srodek) / zasieg)) for k in range(lo, hi)]
+        s = sum(ws) or 1.0
+        wynik.append((lo, [x / s for x in ws]))
+    return wynik
+
+
+def do_formatu(zrodlo, cel, szer, wys):
+    """Docina PNG do proporcji szer:wys (środek) i skaluje do szer×wys. Zwraca opis zmian."""
+    w, h, wiersze = _czytaj_png(zrodlo)
+    if w * wys > h * szer:
+        cw, ch = round(h * szer / wys), h
+    else:
+        cw, ch = w, round(w * wys / szer)
+    x0, y0 = (w - cw) // 2, (h - ch) // 2
+    kolumny = _wagi(x0, cw, szer)
+    poziomo = {}
+    for y in {k for lo, ws in _wagi(y0, ch, wys) for k in range(lo, lo + len(ws))}:
+        kanaly = [list(wiersze[y][c::3]) for c in range(3)]
+        out = [0.0] * (szer * 3)
+        for c in range(3):
+            kan = kanaly[c]
+            out[c::3] = [sum(v * q for v, q in zip(kan[lo:lo + len(ws)], ws)) for lo, ws in kolumny]
+        poziomo[y] = out
+    gotowe = []
+    for lo, ws in _wagi(y0, ch, wys):
+        acc = [v * ws[0] for v in poziomo[lo]]
+        for k, q in enumerate(ws[1:], 1):
+            acc = [a + v * q for a, v in zip(acc, poziomo[lo + k])]
+        gotowe.append(bytearray(min(255, max(0, int(a + 0.5))) for a in acc))
+    Path(cel).parent.mkdir(parents=True, exist_ok=True)
+    _zapisz_png(cel, szer, wys, gotowe)
+    return {"z": (w, h), "uciete": (w - cw, h - ch), "powiekszenie": szer / cw}
+
+
+def cmd_instagram(a):
+    kat = znajdz_komiks(a.komiks)
+    odc = znajdz_odcinek(kat, a.odcinek)
+    _pliki_instagram(kat, odc)
+
+
+def _pliki_instagram(kat, odc):
+    final = odc / "final"
+    if not final.is_dir() or not obrazy_w(final):
+        raise Blad(f"{odc.name}: nie ma jeszcze finału — najpierw odcinek-final.")
+    fmt = wczytaj_komiks(kat)["format"]
+    wym = wymiary(fmt)
+    if not wym:
+        info(f"UWAGA: format „{fmt}” w komiks.yaml nie wygląda jak 1080x1350 — pliki na Instagram pominięte.")
+        return
+    szer, wys = wym
+    ig = odc / "instagram"
+    if ig.exists():
+        shutil.rmtree(ig)
+    ig.mkdir()
+    info(f"Pliki na Instagram ({szer}×{wys} px), w kolejności karuzeli:")
+    for p in obrazy_w(final):
+        if p.suffix.lower() != ".png":
+            shutil.copy2(p, ig / p.name)
+            info(f"  {ig / p.name}  — UWAGA: to nie PNG, skopiowany bez docięcia do {szer}×{wys}.")
+            continue
+        r = do_formatu(p, ig / (p.stem + ".png"), szer, wys)
+        uwagi = []
+        if r["uciete"][1]:
+            uwagi.append(f"ucięto {r['uciete'][1]} px z góry i dołu razem — sprawdź, czy dymki są całe")
+        if r["uciete"][0]:
+            uwagi.append(f"ucięto {r['uciete'][0]} px z boków razem — sprawdź brzegi kadrów")
+        if r["powiekszenie"] > 1.15:
+            uwagi.append(f"obraz był mały ({r['z'][0]}×{r['z'][1]}), powiększony — może być miękki")
+        info(f"  {ig / (p.stem + '.png')}" + (f"  — {'; '.join(uwagi)}" if uwagi else ""))
 
 
 # --- sprawdzanie ---------------------------------------------------------------
@@ -796,9 +966,15 @@ def cmd_prompt_baza(a):
          "ubranie i znaki szczególne. Nie zmieniaj stylu względem wzoru stylu.")
     for linia in linie:
         info(linia)
-    w, h = (dane["format"].split("x") + ["", ""])[:2]
-    info(f"Format obrazu: {w}×{h} px (pionowo)." if w.isdigit() and h.isdigit() and int(h) > int(w)
-         else f"Format obrazu: {dane['format']}.")
+    wym = wymiary(dane["format"])
+    if wym:
+        w, h = wym
+        nwd = math.gcd(w, h)
+        uklad = "pionowy" if h > w else "poziomy" if w > h else "kwadratowy"
+        info(f"Format obrazu: {uklad}, proporcje {w // nwd}:{h // nwd}. Twarze, dymki i napisy z dala "
+             "od samych krawędzi (margines ok. 5%).")
+    else:
+        info(f"Format obrazu: {dane['format']}.")
     if nie_rob:
         info("Nie rób: " + "; ".join(l.lstrip("-* ").strip() for l in nie_rob.splitlines() if l.strip()))
     info("")
@@ -1031,6 +1207,10 @@ def parser():
     s = dodaj("odcinek-final", cmd_odcinek_final, "wybierz wersję jako final")
     s.add_argument("odcinek")
     s.add_argument("wersja", help="np. v2")
+
+    s = dodaj("instagram", cmd_instagram,
+              "zrób od nowa pliki finału w dokładnym formacie posta (docięcie + skala)")
+    s.add_argument("odcinek")
 
     s = dodaj("obraz", cmd_obraz, "skopiuj ostatnio wygenerowany obraz pod wskazaną ścieżkę", komiks=False)
     s.add_argument("--do", required=True, help="ścieżka docelowa, np. biblia/postaci/ola/arkusz.png")

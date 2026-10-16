@@ -17,3 +17,8 @@ def png(sciezka, szer, wys, kolor, pasek=(40, 37, 34)):
         f.write(blok(b"IHDR", struct.pack(">IIBBBBB", szer, wys, 8, 2, 0, 0, 0)))
         f.write(blok(b"IDAT", zlib.compress(b"".join(wiersze), 9)))
         f.write(blok(b"IEND", b""))
+
+
+def rozmiar_png(sciezka):
+    with open(sciezka, "rb") as f:
+        return struct.unpack(">II", f.read(24)[16:24])
