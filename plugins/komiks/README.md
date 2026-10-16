@@ -25,11 +25,11 @@ w …”; plugin sam pyta o bibliotekę, zanim założy pierwszy komiks w pustym
 
 ```
 python3 scripts/komiks.py biblioteka                          # pokaż (NIE USTAWIONO / BIBLIOTEKA: …)
-python3 scripts/komiks.py biblioteka --ustaw ~/Projects/guc-net/komiksy-codex
+python3 scripts/komiks.py biblioteka --ustaw ~/Komiksy
 python3 scripts/komiks.py biblioteka --wylacz                 # wróć do bieżącego folderu
 python3 scripts/komiks.py nowy --tytul "…" --biblioteka ~/Pulpit/proba   # jednorazowo gdzie indziej
 python3 scripts/komiks.py stan                                # wszystkie serie z biblioteki
-python3 scripts/komiks.py gotowe --komiks citra-na-samui      # komiks samą nazwą z biblioteki
+python3 scripts/komiks.py gotowe --komiks moja-seria          # komiks samą nazwą z biblioteki
 ```
 
 Bez ustawionej biblioteki wszystko działa jak w 0.2: komiksy w bieżącym folderze
@@ -42,8 +42,8 @@ tylko aktualny final, docięty i przeskalowany do `format` — i drukuje:
 
 ```
 ZATWIERDZONE — GOTOWE DO PUBLIKACJI
-Gotowe materiały do publikacji dla „Citra na Samui”, odcinek 001 („Pierwszy dzień na wyspie”):
-/Users/ja/Projects/guc-net/komiksy-codex/citra-na-samui/gotowe/001-pierwszy-dzien-na-wyspie
+Gotowe materiały do publikacji dla „Moja seria”, odcinek 001 („Pierwszy odcinek”):
+/Users/ja/Komiksy/moja-seria/gotowe/001-pierwszy-odcinek
 3 slajdy • PNG 1080 × 1350 px • kolejność publikacji: 1 → 3
   1. plansza-1.png
   2. plansza-2.png

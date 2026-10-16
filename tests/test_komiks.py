@@ -288,7 +288,7 @@ class TestBiblioteka(ZFolderem):
         self.assertTrue((self.tmp / "tu" / "komiks.yaml").is_file())
 
     def test_biblioteka_niezalezna_od_biezacego_folderu(self):
-        bib = self.tmp / "Projekty" / "komiksy-codex"
+        bib = self.tmp / "Komiksy"
         kod, wyjscie = uruchom("biblioteka", "--ustaw", bib)
         self.assertEqual(kod, 0, wyjscie)
         self.assertTrue((bib / "AGENTS.md").is_file())
@@ -297,25 +297,25 @@ class TestBiblioteka(ZFolderem):
         stary = os.getcwd()
         os.chdir(roboczy)  # „nowa rozmowa” w przypadkowym folderze
         try:
-            self.assertEqual(uruchom("nowy", "--tytul", "Citra na Samui")[0], 0)
+            self.assertEqual(uruchom("nowy", "--tytul", "Moja seria")[0], 0)
             self.assertEqual(uruchom("nowy", "--tytul", "Druga seria")[0], 0)
             kod, wyjscie = uruchom("stan")
             self.assertIn(f"Biblioteka komiksów: {bib.resolve()}", wyjscie)
-            self.assertIn("Citra na Samui", wyjscie)
+            self.assertIn("Moja seria", wyjscie)
             self.assertIn("Druga seria", wyjscie)
             # komiks po samej nazwie, bez pełnej ścieżki
-            self.assertEqual(uruchom("postac", "--komiks", "citra-na-samui", "--imie", "Citra")[0], 0)
+            self.assertEqual(uruchom("postac", "--komiks", "moja-seria", "--imie", "Ola")[0], 0)
             # bez --komiks przy kilku komiksach: prośba o nazwę
             kod, wyjscie = uruchom("sprawdz")
             self.assertEqual(kod, 1)
-            self.assertIn("citra-na-samui, druga-seria", wyjscie)
+            self.assertIn("druga-seria, moja-seria", wyjscie)
             # jednorazowe nadpisanie lokalizacji
             inny = self.tmp / "inny"
             self.assertEqual(uruchom("nowy", "--tytul", "Gdzie indziej", "--biblioteka", inny)[0], 0)
         finally:
             os.chdir(stary)
         self.assertEqual(list(roboczy.iterdir()), [])
-        self.assertTrue((bib / "citra-na-samui" / "biblia" / "postaci" / "citra" / "postac.md").is_file())
+        self.assertTrue((bib / "moja-seria" / "biblia" / "postaci" / "ola" / "postac.md").is_file())
         self.assertTrue((self.tmp / "inny" / "gdzie-indziej" / "komiks.yaml").is_file())
         self.assertFalse((bib / "gdzie-indziej").exists())
         kod, wyjscie = uruchom("biblioteka")
@@ -323,7 +323,7 @@ class TestBiblioteka(ZFolderem):
         self.assertIn("Komiksów w bibliotece: 2", wyjscie)
         kod, wyjscie = uruchom("biblioteka", "--wylacz")
         self.assertIn("NIE USTAWIONO", uruchom("biblioteka")[1])
-        self.assertTrue((bib / "citra-na-samui" / "komiks.yaml").is_file())
+        self.assertTrue((bib / "moja-seria" / "komiks.yaml").is_file())
 
     def test_brak_folderu_biblioteki(self):
         bib = self.tmp / "dysk"
@@ -343,7 +343,7 @@ class TestGotowe(ZFolderem):
     def komiks_z_odcinkiem(self, plansze):
         kat = self.kopia_fixture()
         dane = komiks.czytaj_yaml(kat / "komiks.yaml")
-        dane["tytul"] = "Citra na Samui"
+        dane["tytul"] = "Moja seria"
         komiks.zapisz_yaml(kat / "komiks.yaml", dane)
         uruchom("odcinek-nowy", "--komiks", kat, "--tytul", "Plaża")
         odc = kat / "odcinki" / "003-plaza"
@@ -360,7 +360,7 @@ class TestGotowe(ZFolderem):
         self.assertEqual(kod, 0, wyjscie)
         gotowe = kat / "gotowe" / "003-plaza"
         self.assertIn("ZATWIERDZONE — GOTOWE DO PUBLIKACJI", wyjscie)
-        self.assertIn("Gotowe materiały do publikacji dla „Citra na Samui”, odcinek 003 („Plaża”):", wyjscie)
+        self.assertIn("Gotowe materiały do publikacji dla „Moja seria”, odcinek 003 („Plaża”):", wyjscie)
         self.assertIn(f"\n{gotowe.resolve()}\n", wyjscie)
         self.assertIn("3 slajdy • PNG 1080 × 1350 px • kolejność publikacji: 1 → 3", wyjscie)
         self.assertIn("  3. plansza-3.png", wyjscie)

@@ -39,7 +39,7 @@ po co, i poproś o zgodę. `python3 KOMIKS --help` pokazuje wszystkie polecenia.
 2. **Biblioteka** — `KOMIKS biblioteka`. To stały folder ze wszystkimi komiksami
    użytkownika; działa w każdej rozmowie, niezależnie od otwartego folderu.
    - `BIBLIOTEKA: <folder>` → pracujesz tam. `stan` i `nowy` same jej używają, a komiks
-     wskazujesz samą nazwą: `--komiks citra-na-samui`. Nie twórz komiksów w bieżącym
+     wskazujesz samą nazwą: `--komiks moja-seria`. Nie twórz komiksów w bieżącym
      folderze rozmowy.
    - `NIE USTAWIONO` → jeśli w bieżącym folderze są już komiksy (`KOMIKS stan`), pracuj
      tu jak dotąd i raz zaproponuj: „Zapamiętać ten folder jako Twoją bibliotekę
