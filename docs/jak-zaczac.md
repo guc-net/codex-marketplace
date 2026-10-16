@@ -35,11 +35,11 @@ Napisz **„Zacznijmy nowy komiks”**. Codex przeprowadzi Cię po kolei:
 | 1. Pomysł | **„Zróbmy odcinek o tym, że sok to nie owoc”** | 0 |
 | 2. Scenariusz | czytasz dialogi i poprawiasz słowa: **„W kadrze 4 niech powie: zjedz, nie pij”** ✔ | 0 |
 | 3. Storyboard | Codex opisuje każdy kadr jednym zdaniem (plan, skąd kamera) ✔ | 0 |
-| 4. Szkic | przy trudniejszej planszy — szybki szkic ołówkiem, tylko układ | 1 |
+| 4. Szkic | tylko jeśli poprosisz: **„najpierw szybki szkic”** — ołówek, sam układ | 1 |
 | 5. Plansza | Codex rysuje z obrazami postaci i stylu na wejściu → **wersja 1** ✔ | 1 na planszę |
 | 6. Poprawki | **„W kadrze 3 ma się uśmiechać”** → wersja 2, 3… (stare nie giną) ✔ | 1–3 |
 | 7. Final | **„Ta jest dobra”** → final, strona komiksu się odświeża ✔ | 0 |
-| 8. Instagram | Codex poda pliki w kolejności karuzeli i podpis posta | 0 |
+| 8. Instagram | Codex poda pliki z folderu `instagram/` (dokładnie 1080×1350) w kolejności karuzeli i podpis posta | 0 |
 
 ✔ = tu decydujesz Ty. **Słowa poprawiaj w kroku 2 i 3** — tekst nic nie kosztuje,
 każdy obraz zużywa limit planu.

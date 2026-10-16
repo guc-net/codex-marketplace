@@ -31,13 +31,49 @@ OpenAI zmienia limity często — aktualne liczby zawsze pokazuje Twój panel u�
 | Business | 20 $ / os. / mies. rocznie, 25 $ miesięcznie (od 2 osób) | tak | kredyty firmowe |
 | Enterprise / Edu | wycena indywidualna | tak | przy rozliczaniu kredytami brak stałych limitów |
 
-## Rozmiary i jakość
+## Rozmiar, rozdzielczość i jakość
 
-W Codexie piszesz po prostu, jaki obraz chcesz (format bierze plugin z `komiks.yaml`).
-Strona Codexa nie wymienia ustawień rozmiaru ani jakości. Dla tego samego modelu
-w API OpenAI podaje: zalecane rozmiary **1024×1024**, **1024×1536** (pion),
-**1536×1024** (poziom), jakość **low / medium / high**, maks. 3840 px na dłuższym boku,
-proporcje najwyżej 3:1.
+**W Codexie nie wymusisz rozmiaru w pikselach ani jakości.**
+Wbudowane narzędzie do obrazów nie ma takich ustawień — OpenAI w instrukcji dla
+Codexa pisze wprost, że jakość i rozmiar to opcje tylko trybu przez API
+(z własnym kluczem). Możesz poprosić o **proporcje** („pionowo 4:5”, „kwadrat”),
+a generator sam dobiera piksele: na prośbę o 4:5 dał nam 1122×1402, na inne
+prośby 1024×1536 czy 1536×1024.
+
+Dlatego plugin robi tak:
+
+1. Prosi generator o proporcje posta z `komiks.yaml` (4:5 albo 1:1) i o margines
+   przy krawędziach (twarze i dymki nie przy samym brzegu).
+2. Po wybraniu finału sam robi folder **`instagram/`**: plansze docięte od środka
+   do dokładnych proporcji i przeskalowane do **1080×1350** (albo 1080×1080).
+   Oryginały w pełnej jakości zostają w `final/`.
+3. Jeśli coś trzeba było uciąć albo mocno powiększyć, mówi o tym — wtedy obejrzyj
+   dymki na brzegach.
+
+Przez API (własny klucz, płatne za sztukę) da się ustawić więcej: rozmiar dowolny
+w granicach (boki podzielne przez 16, do 3840 px, proporcje do 3:1 — np. 1088×1360
+to dokładne 4:5), jakość **low / medium / high** (nowsze modele `gpt-image-2.5`
+także xhigh i max). Codex w aplikacji rysuje `gpt-image-2`.
+
+### Czy jakość wpływa na czas generowania?
+
+Według OpenAI — **tak, ale tylko tam, gdzie jakość da się wybrać (API)**:
+
+- „Use quality low for quick drafts. For final assets, compare higher quality
+  settings to find the right balance of detail, latency, and cost” — niższa
+  jakość = szybciej i taniej, wyższa = więcej szczegółów, dłużej.
+- Dla starszych modeli OpenAI pisze, że czas i koszt rosną z liczbą „tokenów
+  obrazu”: 1024×1536 to 408 (low) / 1584 (medium) / 6240 (high).
+- Kwadrat generuje się zwykle najszybciej; skomplikowany prompt może trwać do 2 minut.
+- W Codexie obraz zużywa limit 3–5× szybciej niż zwykła tura, „zależnie od jakości
+  i rozmiaru”.
+
+Własnego pomiaru low vs high nie zrobiliśmy: w aplikacji nie ma przełącznika
+jakości, a do API potrzebny jest płatny klucz, którego tu nie używamy.
+
+**Decyzja w pluginie:** jakości nie obniżamy. Arkusze postaci, widoki, wzory stylu,
+próbki stylów i finały — zawsze pełna jakość. Szybki szkic (ołówek, sam układ
+planszy) jest tylko opcją: plugin robi go wyłącznie wtedy, gdy o to poprosisz.
 
 ## Ile to kosztuje, gdy płacisz za sztukę
 
@@ -47,7 +83,7 @@ nie zjadają limitu planu, tylko kosztują wg cennika API. Ceny jednego obrazu
 
 | Jakość | 1024×1024 | 1024×1536 (pion) |
 |---|---|---|
-| low (szkic) | 0,006 $ | 0,005 $ |
+| low | 0,006 $ | 0,005 $ |
 | medium | 0,053 $ | 0,041 $ |
 | high | 0,211 $ | 0,165 $ |
 
@@ -75,6 +111,7 @@ nie od zera; projekt rozłóż na kilka dni; scenariusze rób na zapas, gdy limi
 - Liczby obrazów na plan i okno czasowe (OpenAI ich nie publikuje).
 - Ceny kredytów dla Plus i Pro w dolarach.
 - Limity obrazów w zwykłym czacie ChatGPT („zależą od planu i ustawień workspace”).
+- Czy zwykły czat ChatGPT (poza Codexem) ma przełącznik rozmiaru albo jakości obrazu.
 - Strony help.openai.com i chatgpt.com/pricing nie dały się odczytać automatycznie,
   więc nie były porównane.
 
@@ -82,5 +119,7 @@ nie od zera; projekt rozłóż na kilka dni; scenariusze rób na zapas, gdy limi
 
 - Plany i limity Codexa, kredyty, tabela funkcji: https://learn.chatgpt.com/docs/pricing
 - Obrazy w Codexie (model, referencje, edycja, klucz API): https://learn.chatgpt.com/docs/image-generation
-- Rozmiary, jakość i ceny obrazów w API: https://developers.openai.com/api/docs/guides/image-generation
+- Rozmiary, jakość, czas i ceny obrazów w API: https://developers.openai.com/api/docs/guides/image-generation
+- Brak ustawień rozmiaru i jakości we wbudowanym narzędziu: instrukcja OpenAI dla
+  Codexa „imagegen” dołączona do Codexa CLI 0.162.1 (`~/.codex/skills/.system/imagegen/SKILL.md`)
 - Model `gpt-image-2`: https://developers.openai.com/api/docs/models/gpt-image-2

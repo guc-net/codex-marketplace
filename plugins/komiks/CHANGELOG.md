@@ -3,6 +3,16 @@
 Najnowsza wersja na górze. Ten plik czyta plugin, kiedy mówi Ci o aktualizacji —
 pisz więc tak, żeby rozumiał to ktoś, kto nie programuje.
 
+## 0.2.1 — 2026-10-16
+
+- Pliki na Instagram w dokładnym rozmiarze: po wybraniu finału plugin sam robi folder
+  `instagram/` z planszami 1080×1350 (albo 1080×1080) — docina od środka i skaluje.
+  Powie, jeśli coś trzeba było uciąć, żebyś sprawdził dymki przy brzegach.
+- Jakość zawsze pełna: postaci, style i finały nigdy w obniżonej jakości. Szybki szkic
+  ołówkiem robi się tylko wtedy, gdy o niego poprosisz.
+- Ściąga o planach odpowiada, czy da się wybrać rozmiar i jakość obrazu (w Codexie nie)
+  i czy jakość zmienia czas generowania.
+
 ## 0.2.0 — 2026-10-16
 
 - Nowy komiks zaczyna się od krótkiej listy pytań — po jednym, każde z gotową

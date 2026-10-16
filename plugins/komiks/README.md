@@ -11,7 +11,7 @@ Komiksy/                     ← ten folder otwierasz w Codexie
     projekt/style/           ← próbki stylów z początku projektu
     zmiany/                  ← dziennik zmian biblii (propozycja / zatwierdzona / odrzucona)
     historia-biblii/v1, v2…  ← zamrożone wersje biblii
-    odcinki/001-…/           ← scenariusz, wersje/v1, v2… z promptami, final/
+    odcinki/001-…/           ← scenariusz, wersje/v1, v2… z promptami, final/, instagram/
     strona/index.html        ← strona komiksu (budowana od zera, nie edytuj ręcznie)
 ```
 

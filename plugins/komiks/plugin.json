@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "komiks",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Pracownia komiksu: biblia stylu i postaci, odcinki z wersjami obrazów, strona HTML.",
   "author": {
     "name": "guc-net",

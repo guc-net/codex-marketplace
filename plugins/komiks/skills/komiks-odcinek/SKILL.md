@@ -23,11 +23,14 @@ generujesz dopiero, gdy użytkownik zatwierdził scenariusz i storyboard.
    ujęcia: plan (pełna postać / półzbliżenie / zbliżenie), skąd patrzy kamera, który
    widok postaci z arkusza (przód, tył, profil…), gdzie dymek. Zapytaj, czy tak.
    (0 obrazów)
-4. **Szybki szkic** (opcjonalnie, gdy plansza ma 4+ kadry albo trudny układ) — jedna
-   generacja całej planszy z dopiskiem „rough sketch, simple pencil lines, low detail,
+4. **Szybki szkic** — **domyślnie pomijasz**. Tylko gdy użytkownik sam poprosi
+   („najpierw szybki szkic”) albo zgodzi się na Twoją propozycję przy planszy z 4+
+   kadrami: jedna generacja z dopiskiem „rough sketch, simple pencil lines, low detail,
    no color” i bez dymków; tylko do sprawdzenia układu. Szkic zapisz jako wersję
-   (`odcinek-wersja`) — nic nie ginie. (1 obraz na planszę)
-5. **Plansza** ✔ — dla każdej planszy jeden obraz w proporcjach `format`. Najpierw
+   (`odcinek-wersja`) — nic nie ginie. Szkic nigdy nie trafia na wejście jako wzór
+   wyglądu postaci. (1 obraz na planszę)
+5. **Plansza** ✔ — dla każdej planszy jeden obraz w proporcjach `format` (linia
+   „Format obrazu” z `prompt-baza`; generator i tak sam wybierze piksele). Najpierw
    `KOMIKS prompt-baza --komiks <folder> --postac … --miejsce … [--widok …]`; obrazy
    z jej listy na wejściu w tej kolejności (przy szkicu — dodaj go na końcu jako „układ
    kadrów”), prompt zaczynasz od jej wydruku bez zmian, dalej kadry i dialog **dosłownie,
@@ -45,15 +48,20 @@ generujesz dopiero, gdy użytkownik zatwierdził scenariusz i storyboard.
      o tryb dymków nakładanych (na razie nieobsługiwany).
 7. **Final** ✔ — „ta jest dobra” → `KOMIKS odcinek-final <nr> v<N> --komiks <folder>`,
    potem `KOMIKS strona --komiks <folder>` i `KOMIKS sprawdz --komiks <folder>`.
-8. **Na Instagram** — podaj ścieżki plików w `final/` w kolejności karuzeli
-   (`plansza-1`, `plansza-2`…) i przypomnij: format `komiks.yaml` to już proporcje
-   posta, więc wrzuca bez przycinania. Zaproponuj podpis posta (2–3 zdania + 3–5
-   hasztagów) w czacie. Strona: `strona/index.html`.
+   `odcinek-final` sam robi też `instagram/` — kopie plansz docięte (od środka)
+   i przeskalowane **dokładnie** do `format` (np. 1080×1350). Trwa kilka sekund na planszę.
+   Jeśli zgłosi „ucięto … sprawdź, czy dymki są całe” — obejrzyj plik i powiedz o tym;
+   ucięty dymek = poprawka planszy (krok 6) z prośbą o większy margines, potem nowy final.
+8. **Na Instagram** — podaj ścieżki plików z `instagram/` w kolejności karuzeli
+   (`plansza-1`, `plansza-2`…); te wrzuca bez przycinania. `final/` to oryginały
+   w pełnej jakości (strona HTML). Zaproponuj podpis posta (2–3 zdania + 3–5
+   hasztagów) w czacie. Strona: `strona/index.html`. Pliki na Instagram zrobione
+   od nowa (np. po zmianie `format`): `KOMIKS instagram <nr> --komiks <folder>`.
 
 ## Ile to kosztuje
 
-Przed generowaniem powiedz liczbę: odcinek z jedną planszą to zwykle **2–4 obrazy**
-(szkic + plansza + 1–2 poprawki), karuzela z 3 planszami — **6–12**. Gdy limit się
+Przed generowaniem powiedz liczbę: odcinek z jedną planszą to zwykle **2–3 obrazy**
+(plansza + 1–2 poprawki; szkic na życzenie +1), karuzela z 3 planszami — **6–9**. Gdy limit się
 kończy: dokończ scenariusze i storyboardy na zapas (tekst nie zużywa limitu obrazów),
 generuj po odnowieniu.
 
