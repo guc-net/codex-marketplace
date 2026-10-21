@@ -30,3 +30,22 @@ jobs:
           cp -r tests/fixture/przyklad "$RUNNER_TEMP/przyklad"
           python plugins/komiks/scripts/komiks.py strona --komiks "$RUNNER_TEMP/przyklad"
           python plugins/komiks/scripts/komiks.py sprawdz --komiks "$RUNNER_TEMP/przyklad"
+
+  # Scalone do main = na marketplace: nowa wersja pluginu dostaje tag i wydanie,
+  # dopiero gdy testy przeszły na wszystkich systemach.
+  wydanie:
+    needs: testy
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency: wydanie
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Tag i wydanie dla nowych wersji
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python .github/scripts/wydanie.py

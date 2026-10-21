@@ -40,8 +40,11 @@ tests/                             # python -m unittest discover -s tests
 ```
 
 Wydanie: podbij `version` w `plugin.json`, dopisz sekcję na górze `CHANGELOG.md`
-(pierwsza sekcja musi mieć tę samą wersję — pilnuje tego test), scal do `main`,
-otaguj `<plugin>-v<wersja>` i utwórz wydanie na GitHubie. Użytkownicy dostają wersję
-z `main` (tak działa `marketplace upgrade`), więc **`main` = wydana wersja**.
+(pierwsza sekcja musi mieć tę samą wersję — pilnuje tego test) i scal do `main`.
+Resztę robi CI: gdy testy przejdą, a wersja nie ma jeszcze tagu, zadanie `wydanie`
+tworzy tag `<plugin>-v<wersja>` i wydanie na GitHubie z notatkami z sekcji CHANGELOG
+(`.github/scripts/wydanie.py`; `--sprawdz` pokazuje plan bez wydawania). Scalenie bez
+zmiany wersji niczego nie wydaje. Użytkownicy dostają wersję z `main` (tak działa
+`marketplace upgrade`), więc **`main` = wydana wersja**.
 
 Licencja: MIT.
