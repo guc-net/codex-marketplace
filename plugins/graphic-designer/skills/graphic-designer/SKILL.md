@@ -71,7 +71,10 @@ a o kolory i fonty pytasz krótko (patrz `brand-kit`).
         pozwala zapamiętać tę decyzję dla takich poleceń, zaproponuj to osobie (nie wymyślaj
         nazw przycisków). Osoba może też uruchomić aplikację z szerszymi uprawnieniami.
      3. Po zgodzie uruchom `DESIGNER env` jeszcze raz poza piaskownicą; ma pokazać
-        `BROWSER-TEST: OK`. Po zgodzie Chrome działa poprawnie.
+        `BROWSER-TEST: OK`. Po zgodzie Chrome działa poprawnie. Jeśli mimo uruchomienia
+        poza piaskownicą nadal widzisz `SKIPPED` albo `SANDBOX?:` (skrypt błędnie uznał, że
+        jest w piaskownicy), powtórz polecenie z `GD_BROWSER_TRY=1` przed nim
+        (np. `GD_BROWSER_TRY=1 python3 DESIGNER env`) i tak rób przy `render` i `check`.
      4. **Zakaz:** nie przechodź po cichu na inne narzędzie (ImageMagick, Pillow, własny
         skrypt, ręczne liczenie kontrastu), żeby wytworzyć plik ostateczny. Taki plik
         nie przeszedł `check` (fonty, znaki, strefy bezpieczne, zamrożone warstwy), więc

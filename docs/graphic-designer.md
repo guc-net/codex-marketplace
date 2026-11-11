@@ -101,6 +101,10 @@ adresy `file://`. Bez zgody plugin nie złoży ani nie sprawdzi grafiki; może
 tylko proponować kierunki i szkice. Podobnie pyta o zgodę na dostęp do sieci (sprawdzenie
 aktualizacji) i na zapis w Twojej bibliotece grafik.
 
+Gdyby plugin mimo uruchomienia poza piaskownicą nadal pisał `SANDBOX?:` albo `SKIPPED` (błędnie
+uznał, że jest w piaskownicy), poproś agenta, żeby powtórzył polecenie z `GD_BROWSER_TRY=1` na
+początku. To wymusza próbę uruchomienia przeglądarki.
+
 ## Telefon
 
 Nie wiadomo jeszcze, czy plugin działa w aplikacji ChatGPT na telefonie. Nie sprawdzaliśmy tego,

@@ -177,6 +177,10 @@ class SkillsCase(unittest.TestCase):
                        "quit unexpectedly", "Ignore", "wbudowanej przeglądarki aplikacji", "file://"):
             self.assertIn(phrase, entry)
 
+    def test_skill_explains_forcing_the_browser(self):
+        entry = " ".join((PLUGIN / "skills" / "graphic-designer" / "SKILL.md").read_text(encoding="utf-8").split())
+        self.assertIn("GD_BROWSER_TRY=1 python3", entry)
+
     def test_seatbelt_docs_and_changelog(self):
         docs = " ".join((PLUGIN.parent.parent / "docs" / "graphic-designer.md").read_text(encoding="utf-8").split())
         for phrase in ("quit unexpectedly", "Ignore", "Po zgodzie Chrome działa", "11.11.2026", "file://"):
