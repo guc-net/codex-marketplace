@@ -70,7 +70,8 @@ class TestMarketplace(unittest.TestCase):
             # pliki pomocnicze, do których skill odsyła („pytania.md”, „../komiks/spojnosc.md”)
             for ref in re.findall(r"`((?:\.\./[\w-]+/)?[\w-]+\.md)`", skill.read_text(encoding="utf-8")):
                 if ref not in ("SKILL.md", "AGENTS.md", "postac.md", "styl.md", "ton.md", "kadry.md",
-                               "dymki.md", "scenariusz.md"):
+                               "dymki.md", "scenariusz.md",
+                               "brand.md", "CHANGES.md", "README.md", "brief.md", "job.md"):
                     self.assertTrue((skill.parent / ref).is_file(), f"{skill}: brak {ref}")
 
         # wersja w manifeście = najnowszy wpis w CHANGELOG pluginu

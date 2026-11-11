@@ -1,0 +1,14 @@
+[
+  {"id": "ig-post", "label": "Post na Instagram (4:5)", "width": 1080, "height": 1350, "pdf": false, "page_mm": null,
+   "safe": {"top": 34, "right": 34, "bottom": 34, "left": 34}},
+  {"id": "ig-square", "label": "Post kwadratowy na Instagram", "width": 1080, "height": 1080, "pdf": false, "page_mm": null,
+   "safe": {"top": 34, "right": 34, "bottom": 34, "left": 34}},
+  {"id": "ig-story", "label": "Relacja na Instagram (9:16)", "width": 1080, "height": 1920, "pdf": false, "page_mm": null,
+   "safe": {"top": 270, "right": 65, "bottom": 340, "left": 65}},
+  {"id": "fb-event", "label": "Okładka wydarzenia na Facebooku", "width": 1920, "height": 1005, "pdf": false, "page_mm": null,
+   "safe": {"top": 189, "right": 360, "bottom": 189, "left": 360}},
+  {"id": "a4-print", "label": "Plakat A4 do druku", "width": 2551, "height": 3579, "pdf": true, "page_mm": [216, 303],
+   "safe": {"top": 71, "right": 71, "bottom": 71, "left": 71}},
+  {"id": "a3-print", "label": "Plakat A3 do druku", "width": 3579, "height": 5031, "pdf": true, "page_mm": [303, 426],
+   "safe": {"top": 71, "right": 71, "bottom": 71, "left": 71}}
+]
