@@ -53,9 +53,10 @@ def find() -> Path:
     raise GdError(f"NO BROWSER: nie znalazłem przeglądarki. {_HINT}")
 
 
-# Kody, którymi system kończy przeglądarkę, która się wywróciła (abort, trap, naruszenie
-# pamięci). Ujemne kody (Python: zabita sygnałem) liczą się tak samo.
-_CRASH_CODES = (133, 134, 139)
+# Wywrotka przeglądarki: sygnały ILL (4), TRAP (5), ABRT (6), BUS (10), SEGV (11). Python widzi je
+# jako kody ujemne, powłoka jako 128 + numer sygnału. KILL (-9, np. brak pamięci) i TERM (-15)
+# oraz zwykłe kody błędu (1, 2) to nie ślad piaskownicy.
+_CRASH_CODES = (-4, -5, -6, -10, -11, 132, 133, 134, 138, 139)
 
 SANDBOX_HINT = ("SANDBOX?: przeglądarka wywróciła się zaraz po starcie. Najpewniej piaskownica "
                 "Codexa nie pozwala jej uruchomić. Poproś osobę o jednorazową zgodę i uruchom to "
@@ -72,7 +73,7 @@ class BrowserExit(GdError):
 
 
 def is_crash(code: int) -> bool:
-    return code < 0 or code in _CRASH_CODES
+    return code in _CRASH_CODES
 
 
 def _is_root() -> bool:
@@ -117,13 +118,13 @@ def _run(html: Path, extra: List[str], w: int, h: int, capture_stdout: bool = Fa
     return _exec(Path(html).resolve().as_uri(), extra, w, h, capture_stdout)
 
 
-def smoke_test(timeout: int = 20) -> str:
+def smoke_test(timeout: int = 30) -> str:
     """Raz uruchamia znalezioną przeglądarkę na pustej stronie. Zwraca linię `BROWSER-TEST: …`."""
     try:
         _exec("about:blank", ["--dump-dom"], 400, 300, capture_stdout=True, timeout=timeout)
     except BrowserExit as e:
         return f"BROWSER-TEST: FAILED (kod {e.code}) — {e}"
-    except GdError as e:
+    except (GdError, OSError) as e:
         return f"BROWSER-TEST: FAILED — {e}"
     return "BROWSER-TEST: OK"
 
