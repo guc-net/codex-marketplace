@@ -1,0 +1,36 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "graphic-designer",
+  "version": "0.1.0",
+  "description": "Projektant grafik: grafiki zgodne z marką (plakaty, posty, napisy, logo na zdjęciu) z biblią marki i zapisem każdej wersji.",
+  "author": {
+    "name": "guc-net",
+    "url": "https://github.com/guc-net"
+  },
+  "homepage": "https://github.com/guc-net/codex-marketplace/tree/main/plugins/graphic-designer",
+  "repository": "https://github.com/guc-net/codex-marketplace",
+  "license": "MIT",
+  "keywords": ["grafika", "plakat", "marka", "logo", "instagram"],
+  "extensions": {
+    "com.openai": {
+      "onboardingSkill": "./skills/graphic-designer/SKILL.md",
+      "interface": {
+        "displayName": "Projektant grafik",
+        "shortDescription": "Grafiki zgodne z marką",
+        "longDescription": "Prowadzi przez projekt grafiki: czyta biblię marki (kolory, fonty, logo), proponuje kierunki, składa grafikę warstwami, sprawdza kontrast, znaki i strefy bezpieczne, a gotowe pliki zapisuje w folderze na Twoim dysku. Wszystko po polsku.",
+        "developerName": "guc-net",
+        "category": "Creativity",
+        "capabilities": ["Read", "Write"],
+        "websiteURL": "https://github.com/guc-net/codex-marketplace",
+        "defaultPrompt": [
+          "Zaprojektujmy plakat eventu",
+          "Wymyślmy napis albo logo",
+          "Nałóż logo na moje zdjęcie"
+        ],
+        "brandColor": "#3B4252",
+        "composerIcon": "./assets/icon.svg",
+        "logo": "./assets/icon.svg"
+      }
+    }
+  }
+}

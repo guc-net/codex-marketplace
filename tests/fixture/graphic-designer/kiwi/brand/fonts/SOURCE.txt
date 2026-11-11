@@ -1,0 +1,2 @@
+Anton-Regular.ttf i OFL.txt: https://github.com/google/fonts/tree/5bb28733cec313b63fbd415b574b5ae35c8aa8b8/ofl/anton
+Licencja: SIL Open Font License 1.1
