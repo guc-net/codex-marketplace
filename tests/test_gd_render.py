@@ -301,5 +301,89 @@ class EnvCommand(EnvVars):
         self.assertNotIn("WARNING", out)
 
 
+def fake_browser(tmp, body):
+    """Mały skrypt udający przeglądarkę (tylko systemy z powłoką sh)."""
+    path = Path(tmp) / "fake-browser.sh"
+    path.write_text("#!/bin/sh\n" + body + "\n", encoding="utf-8")
+    path.chmod(0o755)
+    return path
+
+
+@unittest.skipIf(os.name == "nt", "atrapa przeglądarki to skrypt sh")
+class SandboxCrash(EnvVars):
+    """Awaria przeglądarki w piaskownicy Codexa ma dać jasny trop SANDBOX?."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.tmp = Path(self._tmp.name)
+        self.html = self.tmp / "x.html"
+        self.html.write_text("<html><body>x</body></html>", encoding="utf-8")
+
+    def crash(self, body):
+        self.setenv("GD_BROWSER", str(fake_browser(self.tmp, body)))
+        with self.assertRaises(GdError) as cm:
+            browser.dump_dom(self.html, 100, 100)
+        return str(cm.exception)
+
+    def test_exit_134_is_sandbox_hint(self):
+        msg = self.crash("exit 134")
+        self.assertTrue(msg.startswith("SANDBOX?:"), msg)
+        self.assertIn("piaskownic", msg)
+        self.assertIn("poza piaskownicą", msg)
+        self.assertIn("przeglądarka zakończyła się kodem 134", msg)
+
+    def test_signal_abort_is_sandbox_hint(self):
+        msg = self.crash("kill -ABRT $$")
+        self.assertTrue(msg.startswith("SANDBOX?:"), msg)
+        self.assertIn("kodem -6", msg)
+
+    def test_exit_139_and_133_are_sandbox_hint(self):
+        for code in (133, 139):
+            self.assertTrue(self.crash(f"exit {code}").startswith("SANDBOX?:"), code)
+
+    def test_ordinary_failure_has_no_sandbox_hint(self):
+        msg = self.crash("echo zly argument >&2; exit 1")
+        self.assertFalse(msg.startswith("SANDBOX?:"), msg)
+        self.assertIn("kodem 1", msg)
+        self.assertIn("zly argument", msg)
+
+
+@unittest.skipIf(os.name == "nt", "atrapa przeglądarki to skrypt sh")
+class EnvSmokeTest(EnvVars):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.tmp = Path(self._tmp.name)
+
+    def test_env_browser_test_ok(self):
+        self.setenv("GD_BROWSER", str(fake_browser(self.tmp, "echo '<html></html>'")))
+        code, out = run("env")
+        self.assertEqual(code, 0)
+        self.assertIn("BROWSER: ", out)
+        self.assertIn("BROWSER-TEST: OK", out)
+
+    def test_env_browser_test_crash(self):
+        self.setenv("GD_BROWSER", str(fake_browser(self.tmp, "exit 134")))
+        code, out = run("env")
+        self.assertEqual(code, 0)
+        self.assertIn("BROWSER: ", out)
+        self.assertRegex(out, r"BROWSER-TEST: FAILED \(kod 134\) — SANDBOX\?:")
+
+    def test_env_browser_test_ordinary_failure(self):
+        self.setenv("GD_BROWSER", str(fake_browser(self.tmp, "exit 2")))
+        code, out = run("env")
+        self.assertEqual(code, 0)
+        self.assertRegex(out, r"BROWSER-TEST: FAILED \(kod 2\)")
+        self.assertNotIn("SANDBOX?", out)
+
+    def test_env_no_browser_no_smoke_test(self):
+        self.setenv("GD_BROWSER", "/nie/ma/przegladarki")
+        code, out = run("env")
+        self.assertEqual(code, 0)
+        self.assertIn("NO BROWSER", out)
+        self.assertNotIn("BROWSER-TEST", out)
+
+
 if __name__ == "__main__":
     unittest.main()

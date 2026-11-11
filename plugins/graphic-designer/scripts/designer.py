@@ -234,6 +234,7 @@ def cmd_env(args) -> int:
     from gd import browser
     try:
         info(f"BROWSER: {browser.find()}")
+        info(browser.smoke_test())
     except GdError as e:
         info("NO BROWSER")
         info(str(e).replace("NO BROWSER: ", "", 1))

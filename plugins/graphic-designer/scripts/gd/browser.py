@@ -53,11 +53,34 @@ def find() -> Path:
     raise GdError(f"NO BROWSER: nie znalazłem przeglądarki. {_HINT}")
 
 
+# Kody, którymi system kończy przeglądarkę, która się wywróciła (abort, trap, naruszenie
+# pamięci). Ujemne kody (Python: zabita sygnałem) liczą się tak samo.
+_CRASH_CODES = (133, 134, 139)
+
+SANDBOX_HINT = ("SANDBOX?: przeglądarka wywróciła się zaraz po starcie. Najpewniej piaskownica "
+                "Codexa nie pozwala jej uruchomić. Poproś osobę o jednorazową zgodę i uruchom to "
+                "samo polecenie jeszcze raz poza piaskownicą. Nie zastępuj składania innym "
+                "narzędziem.")
+
+
+class BrowserExit(GdError):
+    """Przeglądarka zakończyła się błędem; `code` to jej kod wyjścia."""
+
+    def __init__(self, message: str, code: int):
+        super().__init__(message)
+        self.code = code
+
+
+def is_crash(code: int) -> bool:
+    return code < 0 or code in _CRASH_CODES
+
+
 def _is_root() -> bool:
     return hasattr(os, "geteuid") and os.geteuid() == 0
 
 
-def _run(html: Path, extra: List[str], w: int, h: int, capture_stdout: bool = False) -> str:
+def _exec(target: str, extra: List[str], w: int, h: int, capture_stdout: bool = False,
+          timeout: int = TIMEOUT) -> str:
     exe = find()
     profile = tempfile.mkdtemp(prefix="gd-profile-")
     try:
@@ -69,11 +92,11 @@ def _run(html: Path, extra: List[str], w: int, h: int, capture_stdout: bool = Fa
             cmd.append("--no-sandbox")
         if os.name == "posix":
             cmd.append("--disable-dev-shm-usage")
-        cmd += extra + [Path(html).resolve().as_uri()]
+        cmd += extra + [target]
         try:
-            proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=TIMEOUT)
+            proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout)
         except subprocess.TimeoutExpired:
-            raise GdError(f"przeglądarka nie skończyła w {TIMEOUT} s i została przerwana")
+            raise GdError(f"przeglądarka nie skończyła w {timeout} s i została przerwana")
         except OSError as e:
             raise GdError(f"nie mogę uruchomić przeglądarki {exe}: {e}")
         stderr = proc.stderr.decode("utf-8", "replace")
@@ -81,10 +104,28 @@ def _run(html: Path, extra: List[str], w: int, h: int, capture_stdout: bool = Fa
                            if "Trying to load the allocator" not in l)
         _run.last_stderr = stderr  # type: ignore[attr-defined]
         if proc.returncode != 0:
-            raise GdError(f"przeglądarka zakończyła się kodem {proc.returncode}: {stderr[-600:]}")
+            msg = f"przeglądarka zakończyła się kodem {proc.returncode}: {stderr[-600:]}"
+            if is_crash(proc.returncode):
+                msg = f"{SANDBOX_HINT} {msg}"
+            raise BrowserExit(msg, proc.returncode)
         return proc.stdout.decode("utf-8", "replace") if capture_stdout else ""
     finally:
         shutil.rmtree(profile, ignore_errors=True)
+
+
+def _run(html: Path, extra: List[str], w: int, h: int, capture_stdout: bool = False) -> str:
+    return _exec(Path(html).resolve().as_uri(), extra, w, h, capture_stdout)
+
+
+def smoke_test(timeout: int = 20) -> str:
+    """Raz uruchamia znalezioną przeglądarkę na pustej stronie. Zwraca linię `BROWSER-TEST: …`."""
+    try:
+        _exec("about:blank", ["--dump-dom"], 400, 300, capture_stdout=True, timeout=timeout)
+    except BrowserExit as e:
+        return f"BROWSER-TEST: FAILED (kod {e.code}) — {e}"
+    except GdError as e:
+        return f"BROWSER-TEST: FAILED — {e}"
+    return "BROWSER-TEST: OK"
 
 
 def _tail() -> str:
