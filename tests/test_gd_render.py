@@ -139,11 +139,20 @@ class BrowserCase(EnvVars):
         self.brand_dir = self.tmp / "marka" / "brand"
         shutil.copytree(KIWI / "brand", self.brand_dir)
 
-    def new_job(self, formats="ig-post", title="Plakat ślub"):
+    def new_job(self, formats="ig-post", title="Plakat ślub", ready=True):
+        """Zlecenie; `ready` = prawdziwy brief i `choose --direct`, żeby `check` nie wołał o proces."""
         code, out = run("new", "--title", title, "--formats", formats, "--project", "Plakat ślub",
                         "--brand", self.brand_dir)
         self.assertEqual(code, 0, out)
-        return Path(out.split("JOB:", 1)[1].strip().splitlines()[0])
+        job = Path(out.split("JOB:", 1)[1].strip().splitlines()[0])
+        if ready:
+            self.make_ready(job)
+        return job
+
+    def make_ready(self, job):
+        (job / "brief.md").write_text(REAL_BRIEF, encoding="utf-8")
+        code, out = run("choose", "--job", job, "--direct")
+        self.assertEqual(code, 0, out)
 
     def write(self, job, fmt, body, head=""):
         (job / "composition" / f"{fmt}.html").write_text(
@@ -165,6 +174,17 @@ class WithBrowser(BrowserCase):
         self.assertEqual(png.size(job / "final" / "ig-post.png"), (1080, 1350))
         self.assertEqual(png.size(job / "final" / "ig-story.png"), (1080, 1920))
         self.assertEqual(png.read(job / "final" / "ig-post.png").pixel(5, 5)[:3], (0x10, 0x10, 0x10))
+
+    def test_render_moves_stage_to_composition_but_preview_does_not(self):
+        job = self.new_job()
+        stage = lambda: json.loads((job / "job.json").read_text(encoding="utf-8"))["stage"]  # noqa: E731
+        self.assertEqual(stage(), "stages")
+        shutil.copyfile(PLUGIN / "templates" / "composition-starter.html",
+                        job / "composition" / "ig-post.html")
+        self.assertEqual(run("render", "--job", job, "--preview")[0], 0)
+        self.assertEqual(stage(), "stages")
+        self.assertEqual(run("render", "--job", job)[0], 0)
+        self.assertEqual(stage(), "composition")
 
     def test_starter_renders(self):
         job = self.new_job()
@@ -301,6 +321,20 @@ class EnvCommand(EnvVars):
         self.assertNotIn("WARNING", out)
 
 
+REAL_BRIEF = """# Brief zlecenia
+
+## Cel
+Zachęcić do zapisu na warsztaty ceramiki w sobotę wieczorem.
+
+## Odbiorca
+Mieszkańcy dzielnicy, Instagram, post 4:5.
+
+## Teksty dosłowne
+- Nagłówek: Wieczór z gliną
+- Data i godzina: sobota, 18.00
+"""
+
+
 def fake_browser(tmp, body):
     """Mały skrypt udający przeglądarkę (tylko systemy z powłoką sh)."""
     path = Path(tmp) / "fake-browser.sh"
@@ -342,6 +376,24 @@ class SandboxCrash(EnvVars):
         for code in (133, 139):
             self.assertTrue(self.crash(f"exit {code}").startswith("SANDBOX?:"), code)
 
+    def test_other_crash_signals_are_sandbox_hint(self):
+        for sig in ("ILL", "TRAP", "SEGV"):
+            self.assertTrue(self.crash(f"kill -{sig} $$").startswith("SANDBOX?:"), sig)
+        for code in (132, 138):
+            self.assertTrue(self.crash(f"exit {code}").startswith("SANDBOX?:"), code)
+
+    def test_kill_and_term_are_not_sandbox_hint(self):
+        for sig in ("KILL", "TERM"):
+            msg = self.crash(f"kill -{sig} $$")
+            self.assertFalse(msg.startswith("SANDBOX?:"), (sig, msg))
+            self.assertIn("kodem -", msg)
+
+    def test_is_crash_list(self):
+        for code in (-4, -5, -6, -10, -11, 132, 133, 134, 138, 139):
+            self.assertTrue(browser.is_crash(code), code)
+        for code in (0, 1, 2, -2, -9, -15, 137, 143, 255):
+            self.assertFalse(browser.is_crash(code), code)
+
     def test_ordinary_failure_has_no_sandbox_hint(self):
         msg = self.crash("echo zly argument >&2; exit 1")
         self.assertFalse(msg.startswith("SANDBOX?:"), msg)
@@ -376,6 +428,16 @@ class EnvSmokeTest(EnvVars):
         self.assertEqual(code, 0)
         self.assertRegex(out, r"BROWSER-TEST: FAILED \(kod 2\)")
         self.assertNotIn("SANDBOX?", out)
+
+    def test_env_smoke_test_survives_oserror(self):
+        from unittest import mock
+        self.setenv("GD_BROWSER", str(fake_browser(self.tmp, "echo '<html></html>'")))
+        with mock.patch.object(browser.tempfile, "mkdtemp", side_effect=OSError("brak TMPDIR")):
+            code, out = run("env")
+        self.assertEqual(code, 0)
+        self.assertIn("BROWSER-TEST: FAILED", out)
+        self.assertIn("brak TMPDIR", out)
+        self.assertRegex(out, r"PYTHON: \d+")
 
     def test_env_no_browser_no_smoke_test(self):
         self.setenv("GD_BROWSER", "/nie/ma/przegladarki")

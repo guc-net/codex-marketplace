@@ -30,8 +30,8 @@ class PackageCase(BrowserCase):
         self.repo.mkdir()
         shutil.copytree(KIWI / "brand", self.repo / "brand")
 
-    def job_with_layer(self, formats="ig-post", body=GOOD):
-        job = self.new_job(formats)
+    def job_with_layer(self, formats="ig-post", body=GOOD, ready=True):
+        job = self.new_job(formats, ready=ready)
         src = self.tmp / "tlo.png"
         shutil.copyfile(KIWI / "brand" / "logo" / "mark.png", src)
         code, out = run("freeze", "--job", job, "--name", "tlo", "--file", src, "--source", "photo",
@@ -113,6 +113,15 @@ class NoBrowser(PackageCase):
         self.assertEqual(run("status", "--job", new)[0], 0)
         self.assertNotIn("PROBLEM", run("status", "--job", new)[1])
 
+    def test_adopt_is_chosen_direct_at_stages(self):
+        job = self.job_with_layer()
+        self.assertEqual(run("share", "--job", job, "--repo", self.repo)[0], 0)
+        code, out = run("adopt", "--package", self.pkg(job))
+        self.assertEqual(code, 0, out)
+        new = Path(out.split("JOB:", 1)[1].strip().splitlines()[0])
+        data = json.loads((new / "job.json").read_text(encoding="utf-8"))
+        self.assertEqual((data["stage"], data["chosen"]), ("stages", "direct"))
+
     def test_adopt_detects_changed_layer(self):
         job = self.job_with_layer()
         self.assertEqual(run("share", "--job", job, "--repo", self.repo)[0], 0)
@@ -162,6 +171,28 @@ class Finalize(PackageCase):
                         "--replace")
         self.assertEqual(code, 0, out)
         self.assertIn("Basia", (pkg / "README.md").read_text(encoding="utf-8"))
+
+    def test_finalize_blocked_without_process_then_allowed(self):
+        job = self.job_with_layer(ready=False)
+        self.assertEqual(run("render", "--job", job)[0], 0)
+        args = ("finalize", "--job", job, "--repo", self.repo, "--approved-by", "Ala")
+        code, out = run(*args)
+        self.assertEqual(code, 1, out)
+        self.assertIn("process", out)
+        self.assertIn("choose", out)
+        self.assertIn("brief.md", out)
+        self.assertFalse(self.pkg(job).exists())
+        self.make_ready(job)
+        code, out = run(*args)
+        self.assertEqual(code, 0, out)
+
+    def test_finalize_accept_problems_covers_process(self):
+        job = self.job_with_layer(ready=False)
+        self.assertEqual(run("render", "--job", job)[0], 0)
+        code, out = run("finalize", "--job", job, "--repo", self.repo, "--approved-by", "Ala",
+                        "--accept-problems")
+        self.assertEqual(code, 0, out)
+        self.assertIn("process", (self.pkg(job) / "README.md").read_text(encoding="utf-8"))
 
     def test_finalize_requires_clean_check(self):
         job = self.job_with_layer(body=BAD)

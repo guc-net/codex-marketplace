@@ -26,8 +26,11 @@ def _job_line(job: Path) -> str:
         d = jobs.load(job)
     except GdError:
         return f"- {job.parent.name}/{job.name}: PROBLEM: nie mogę odczytać job.json"
-    return (f"- {job.parent.name}/{job.name}: {d.get('title', '?')} | etap: {d.get('stage', '?')} | "
-            f"warstwy: {len(jobs.layer_metas(job))} | formaty: {', '.join(d.get('formats', []))}")
+    stage = d.get("stage", "?")
+    step = jobs.NEXT_STEP.get(stage)
+    return (f"- {job.parent.name}/{job.name}: {d.get('title', '?')} | etap: {stage}"
+            + (f" → {step}" if step else "")
+            + f" | warstwy: {len(jobs.layer_metas(job))} | formaty: {', '.join(d.get('formats', []))}")
 
 
 def cmd_library(args) -> int:
@@ -121,6 +124,16 @@ def cmd_draft(args) -> int:
     return 0
 
 
+def cmd_choose(args) -> int:
+    job = jobs.job_dir(args.job)
+    value = jobs.choose(job, args.direction, args.direct)
+    if value == "direct":
+        info(f"OK: zlecenie {job.name} bez rundy kierunków (direct); etap: stages")
+    else:
+        info(f"OK: wybrany kierunek {value} w zleceniu {job.name}; etap: stages")
+    return 0
+
+
 def cmd_freeze(args) -> int:
     job = jobs.job_dir(args.job)
     inputs = [i.strip() for i in (args.inputs or "").split(",") if i.strip()]
@@ -186,6 +199,8 @@ def cmd_render(args) -> int:
     from gd import render
     job = jobs.job_dir(args.job)
     files = render.render_job(job, args.format, args.preview)
+    if not args.preview:
+        jobs.advance(job, "composition")
     info("RENDERED: " + ", ".join(str(f) for f in files))
     return 0
 
@@ -281,6 +296,13 @@ def parser() -> argparse.ArgumentParser:
     s.add_argument("--note", required=True)
     s.add_argument("--prompt")
     s.set_defaults(func=cmd_draft)
+    s = sub.add_parser("choose", help="zapisz wybrany kierunek (albo zlecenie bez rundy kierunków)")
+    s.add_argument("--job", required=True)
+    g = s.add_mutually_exclusive_group(required=True)
+    g.add_argument("--direction", help="litera kierunku zapisanego wcześniej przez draft --direction")
+    g.add_argument("--direct", action="store_true",
+                   help="zlecenie bez rundy kierunków (samo nałożenie albo dokładnie opisany wygląd)")
+    s.set_defaults(func=cmd_choose)
     s = sub.add_parser("freeze", help="zamroź zatwierdzoną warstwę (kopia, z SHA-256)")
     s.add_argument("--job", required=True)
     s.add_argument("--name", required=True)
