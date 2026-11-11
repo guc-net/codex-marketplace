@@ -15,6 +15,8 @@ pisz więc tak, żeby rozumiał to ktoś, kto nie programuje.
 - Skrypt pilnuje procesu: pokazuje etap zlecenia i następny krok, a sprawdzenie zgłasza błąd, gdy brief jest pusty albo nie wybrano kierunku; bez czystego sprawdzenia nie da się zamknąć pakietu. Komunikat o niezamrożonej warstwie mówi teraz, co zrobić.
 - Na początku rozmowy o grafice asystent krótko mówi, jak pracujemy (pytania, kierunki, etapy, kontrola, akceptacja).
 - Dokumentacja: „Jak zacząć (krok po kroku)” w opisie pluginu i w dokumentacji, z podpowiedzią, jak włączyć plugin przez `@`, jaki model wybrać i co zrobić, gdy asystent pomija kroki.
+- Na Macu w piaskownicy Codexa plugin nie uruchamia przeglądarki, bo system pokazywał wtedy okno „Google Chrome quit unexpectedly”; od razu mówi, że trzeba zgody na uruchomienie poza piaskownicą. Po tej zgodzie Chrome działa poprawnie (sprawdzone 11.11.2026).
+- Wyjaśnione, co jest nieszkodliwe (komunikaty o `CVDisplayLink` i „allocator”, okno „quit unexpectedly”) i że wbudowana przeglądarka aplikacji nie nadaje się do eksportu, bo blokuje adresy `file://`.
 
 ## 0.1.0 — 2026-11-11
 

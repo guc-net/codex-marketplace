@@ -171,6 +171,19 @@ class SkillsCase(unittest.TestCase):
         self.assertIn("Przy odmowie zgody nie ma pliku ostatecznego", job)
         self.assertIn("Po pokazie złożonej grafiki wypisz listę", job)
 
+    def test_seatbelt_skip_handling_in_entry_skill(self):
+        entry = " ".join((SKILLS / "graphic-designer" / "SKILL.md").read_text(encoding="utf-8").split())
+        for phrase in ("BROWSER-TEST: SKIPPED", "zapamiętać tę decyzję", "CVDisplayLink", "allocator",
+                       "quit unexpectedly", "Ignore", "wbudowanej przeglądarki aplikacji", "file://"):
+            self.assertIn(phrase, entry)
+
+    def test_seatbelt_docs_and_changelog(self):
+        docs = " ".join((PLUGIN.parent.parent / "docs" / "graphic-designer.md").read_text(encoding="utf-8").split())
+        for phrase in ("quit unexpectedly", "Ignore", "Po zgodzie Chrome działa", "11.11.2026", "file://"):
+            self.assertIn(phrase, docs)
+        log = (PLUGIN / "CHANGELOG.md").read_text(encoding="utf-8")
+        self.assertIn("plugin nie uruchamia przeglądarki", log)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -64,6 +64,20 @@ SANDBOX_HINT = ("SANDBOX?: przeglądarka wywróciła się zaraz po starcie. Najp
                 "narzędziem.")
 
 
+BLOCKED_HINT = ("SANDBOX?: wykryłem piaskownicę Codexa na macOS (CODEX_SANDBOX=seatbelt), w której "
+                "Chrome się wywraca, więc go tu nie uruchamiam. Poproś osobę o jednorazową zgodę i "
+                "uruchom to samo polecenie jeszcze raz poza piaskownicą. Próbę w piaskownicy wymusisz "
+                "zmienną GD_BROWSER_TRY=1. Nie zastępuj składania innym narzędziem.")
+
+SKIPPED_LINE = ("BROWSER-TEST: SKIPPED (piaskownica Codexa na macOS: Chrome się tu wywraca, a system "
+                "pokazuje okno „Google Chrome quit unexpectedly”). Uruchom `env` poza piaskownicą.")
+
+
+def in_codex_sandbox() -> bool:
+    """Piaskownica Codexa na macOS (Seatbelt), chyba że wymuszono próbę zmienną GD_BROWSER_TRY."""
+    return os.environ.get("CODEX_SANDBOX") == "seatbelt" and not os.environ.get("GD_BROWSER_TRY")
+
+
 class BrowserExit(GdError):
     """Przeglądarka zakończyła się błędem; `code` to jej kod wyjścia."""
 
@@ -83,6 +97,8 @@ def _is_root() -> bool:
 def _exec(target: str, extra: List[str], w: int, h: int, capture_stdout: bool = False,
           timeout: int = TIMEOUT) -> str:
     exe = find()
+    if in_codex_sandbox():
+        raise GdError(BLOCKED_HINT)
     profile = tempfile.mkdtemp(prefix="gd-profile-")
     try:
         cmd = [str(exe), "--headless", "--disable-gpu", "--hide-scrollbars", "--no-first-run",
@@ -120,6 +136,8 @@ def _run(html: Path, extra: List[str], w: int, h: int, capture_stdout: bool = Fa
 
 def smoke_test(timeout: int = 30) -> str:
     """Raz uruchamia znalezioną przeglądarkę na pustej stronie. Zwraca linię `BROWSER-TEST: …`."""
+    if in_codex_sandbox():
+        return SKIPPED_LINE + "\n" + BLOCKED_HINT
     try:
         _exec("about:blank", ["--dump-dom"], 400, 300, capture_stdout=True, timeout=timeout)
     except BrowserExit as e:

@@ -87,9 +87,17 @@ niektórych programów. Przeglądarka Chrome w piaskownicy czasem nie startuje i
 awarią. Wtedy `env` pokazuje `BROWSER-TEST: FAILED`, a `render` zwraca komunikat zaczynający
 się od `SANDBOX?:`.
 
+Na Macu przeglądarka w piaskownicy kończy się awarią, a system pokazuje okienko „Google Chrome
+quit unexpectedly”. Plugin wie o tym i w piaskownicy w ogóle jej nie uruchamia: `env` pokazuje
+wtedy `BROWSER-TEST: SKIPPED`. Jeśli okienko mimo to się pojawi, kliknij „Ignore”.
+
 To nie jest błąd Twojej marki ani grafiki. Plugin poprosi Cię o **jednorazową zgodę** na
 uruchomienie polecenia poza piaskownicą (okno zgody w aplikacji). Możesz też uruchomić
-aplikację z szerszymi uprawnieniami. Bez zgody plugin nie złoży ani nie sprawdzi grafiki; może
+aplikację z szerszymi uprawnieniami. Po zgodzie Chrome działa (sprawdzone 11.11.2026 w aplikacji Codex na Macu): składa poprawny plik
+PNG. Komunikaty w wyniku polecenia o `CVDisplayLink` i „Trying to load the allocator multiple
+times” to nieszkodliwy szum. Jeśli okno zgody pozwala zapamiętać decyzję dla takich poleceń,
+możesz z tego skorzystać. Nie eksportuj grafiki przez wbudowaną przeglądarkę aplikacji: blokuje
+adresy `file://`. Bez zgody plugin nie złoży ani nie sprawdzi grafiki; może
 tylko proponować kierunki i szkice. Podobnie pyta o zgodę na dostęp do sieci (sprawdzenie
 aktualizacji) i na zapis w Twojej bibliotece grafik.
 

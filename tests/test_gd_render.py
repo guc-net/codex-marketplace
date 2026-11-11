@@ -353,6 +353,7 @@ class SandboxCrash(EnvVars):
         self.tmp = Path(self._tmp.name)
         self.html = self.tmp / "x.html"
         self.html.write_text("<html><body>x</body></html>", encoding="utf-8")
+        self.setenv("CODEX_SANDBOX", None)
 
     def crash(self, body):
         self.setenv("GD_BROWSER", str(fake_browser(self.tmp, body)))
@@ -407,6 +408,7 @@ class EnvSmokeTest(EnvVars):
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
         self.tmp = Path(self._tmp.name)
+        self.setenv("CODEX_SANDBOX", None)
 
     def test_env_browser_test_ok(self):
         self.setenv("GD_BROWSER", str(fake_browser(self.tmp, "echo '<html></html>'")))
@@ -445,6 +447,75 @@ class EnvSmokeTest(EnvVars):
         self.assertEqual(code, 0)
         self.assertIn("NO BROWSER", out)
         self.assertNotIn("BROWSER-TEST", out)
+
+
+@unittest.skipIf(os.name == "nt", "atrapa przeglądarki to skrypt sh")
+class CodexSeatbelt(EnvVars):
+    """W piaskownicy Codexa na macOS przeglądarki nie uruchamiamy (okno „quit unexpectedly”)."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.tmp = Path(self._tmp.name)
+        self.marker = self.tmp / "launched"
+        self.html = self.tmp / "x.html"
+        self.html.write_text("<html><body>x</body></html>", encoding="utf-8")
+        self.setenv("GD_BROWSER", str(fake_browser(self.tmp, f"touch '{self.marker}'; echo '<html></html>'")))
+        self.setenv("GD_BROWSER_TRY", None)
+        self.setenv("CODEX_SANDBOX", "seatbelt")
+
+    def test_env_skips_smoke_test_and_does_not_launch(self):
+        code, out = run("env")
+        self.assertEqual(code, 0)
+        self.assertIn("BROWSER: ", out)
+        self.assertIn("BROWSER-TEST: SKIPPED (piaskownica Codexa na macOS", out)
+        self.assertIn("quit unexpectedly", out)
+        self.assertIn("Uruchom `env` poza piaskownicą.", out)
+        self.assertIn("SANDBOX?:", out)
+        self.assertRegex(out, r"PYTHON: \d+")
+        self.assertFalse(self.marker.exists())
+
+    def test_browser_call_raises_sandbox_hint_without_launching(self):
+        with self.assertRaises(GdError) as cm:
+            browser.dump_dom(self.html, 100, 100)
+        msg = str(cm.exception)
+        self.assertTrue(msg.startswith("SANDBOX?:"), msg)
+        self.assertIn("poza piaskownicą", msg)
+        self.assertIn("GD_BROWSER_TRY=1", msg)
+        self.assertFalse(self.marker.exists())
+
+    def test_try_variable_forces_launch(self):
+        self.setenv("GD_BROWSER_TRY", "1")
+        self.assertIn("<html>", browser.dump_dom(self.html, 100, 100))
+        self.assertTrue(self.marker.exists())
+        self.marker.unlink()
+        code, out = run("env")
+        self.assertIn("BROWSER-TEST: OK", out)
+        self.assertTrue(self.marker.exists())
+
+    def test_empty_try_variable_does_not_force(self):
+        self.setenv("GD_BROWSER_TRY", "")
+        with self.assertRaises(GdError):
+            browser.dump_dom(self.html, 100, 100)
+        self.assertFalse(self.marker.exists())
+
+    def test_other_sandbox_value_changes_nothing(self):
+        self.setenv("CODEX_SANDBOX", "landlock")
+        self.assertIn("<html>", browser.dump_dom(self.html, 100, 100))
+        self.assertTrue(self.marker.exists())
+
+    def test_variable_unset_changes_nothing(self):
+        self.setenv("CODEX_SANDBOX", None)
+        code, out = run("env")
+        self.assertIn("BROWSER-TEST: OK", out)
+        self.assertNotIn("SKIPPED", out)
+        self.assertTrue(self.marker.exists())
+
+    def test_no_browser_still_reports_no_browser(self):
+        self.setenv("GD_BROWSER", "/nie/ma/przegladarki")
+        code, out = run("env")
+        self.assertIn("NO BROWSER", out)
+        self.assertNotIn("SKIPPED", out)
 
 
 if __name__ == "__main__":

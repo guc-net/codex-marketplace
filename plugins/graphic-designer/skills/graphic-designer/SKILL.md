@@ -56,22 +56,31 @@ a o kolory i fonty pytasz krótko (patrz `brand-kit`).
    - `NO BROWSER` → powiedz wprost, że bez przeglądarki Chrome (albo Edge) nie złożę
      grafiki; szkice i kierunki nadal możesz robić. Podpowiedź ze skryptu przekaż swoimi słowami.
    - `BROWSER-TEST: OK` → nic nie mów.
-   - `BROWSER-TEST: FAILED` → przeglądarka nie startuje. Zrób dokładnie to:
-     1. Powiedz jednym zdaniem, co się dzieje. Gdy wynik ma dopisek `SANDBOX?:`: „Przeglądarka,
+   - `BROWSER-TEST: SKIPPED` albo `BROWSER-TEST: FAILED` → przeglądarka nie startuje.
+     `SKIPPED` znaczy, że plugin rozpoznał piaskownicę Codexa na macOS i celowo nie próbował
+     (Chrome się tam wywraca, a system pokazuje okno „Google Chrome quit unexpectedly”).
+     Zrób dokładnie to:
+     1. Powiedz jednym zdaniem, co się dzieje. Gdy wynik ma dopisek `SANDBOX?:` (przy `SKIPPED`
+        zawsze): „Przeglądarka,
         którą składam grafiki, nie może się tu uruchomić — piaskownica jej na to nie pozwala.”
         Gdy dopisku nie ma (np. kod 1 albo przekroczenie czasu), nie twierdź, że to piaskownica:
         pokaż komunikat swoimi słowami, powiedz, że przeglądarka nie startuje z nieznanej
         przyczyny, i zaproponuj uruchomienie poza piaskownicą jako próbę.
      2. Poproś o jednorazową zgodę na uruchamianie `render`, `check`, `env` i `update-check`
-        poza piaskownicą (okno zgody w aplikacji, „uruchom bez piaskownicy”). Osoba może też
-        uruchomić aplikację z szerszymi uprawnieniami.
+        poza piaskownicą (okno zgody w aplikacji, „uruchom bez piaskownicy”). Jeśli okno zgody
+        pozwala zapamiętać tę decyzję dla takich poleceń, zaproponuj to osobie (nie wymyślaj
+        nazw przycisków). Osoba może też uruchomić aplikację z szerszymi uprawnieniami.
      3. Po zgodzie uruchom `DESIGNER env` jeszcze raz poza piaskownicą; ma pokazać
-        `BROWSER-TEST: OK`.
+        `BROWSER-TEST: OK`. Po zgodzie Chrome działa poprawnie.
      4. **Zakaz:** nie przechodź po cichu na inne narzędzie (ImageMagick, Pillow, własny
         skrypt, ręczne liczenie kontrastu), żeby wytworzyć plik ostateczny. Taki plik
         nie przeszedł `check` (fonty, znaki, strefy bezpieczne, zamrożone warstwy), więc
         nie wolno go pokazywać jako gotowego.
-     5. Przy odmowie powiedz jasno: „Bez zgody nie złożę grafiki ani jej nie sprawdzę.”
+     5. Nieszkodliwe: linie błędów o `CVDisplayLink` i „Trying to load the allocator multiple
+        times” w wyniku polecenia to tylko szum, nie błąd. Okno systemu macOS „Google Chrome
+        quit unexpectedly” też jest nieszkodliwe: osoba klika „Ignore”. Nigdy nie używaj
+        wbudowanej przeglądarki aplikacji do eksportu grafiki: blokuje adresy `file://`.
+     6. Przy odmowie powiedz jasno: „Bez zgody nie złożę grafiki ani jej nie sprawdzę.”
         Zaproponuj wyłącznie kierunki i szkice; pliku „ostatecznego” nie dostarczaj.
    - `WARNING: OPENAI_API_KEY…` → ostrzeż jednym zdaniem: „Masz ustawiony klucz API, więc
      obrazy będą liczone według cennika API, a nie z Twojego planu ChatGPT.” Dalej decyduje osoba.
