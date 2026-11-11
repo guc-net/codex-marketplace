@@ -15,7 +15,7 @@ SOURCES = ("generated", "photo", "brand", "composed")
 SUBDIRS = ("drafts", "layers", "composition", "final")
 NO_BRAND_PROJECT = "bez-marki"
 STAGES = ("brief", "directions", "stages", "composition", "final")
-BRIEF_MIN_CHARS = 80
+BRIEF_MIN_CHARS = 40
 NEXT_STEP = {
     "brief": "dopytaj o brief i zapisz kierunki (draft --direction)",
     "directions": "pokaż kierunki i poczekaj na wybór, potem choose",
@@ -145,7 +145,7 @@ def advance(job: Path, stage: str) -> None:
 
 
 def brief_filled(job: Path) -> bool:
-    """Czy brief.md ma realną treść: poza nagłówkami i tekstem szablonu jest >= 80 znaków."""
+    """Czy brief.md ma realną treść: poza nagłówkami i tekstem szablonu jest >= 40 znaków."""
     path = Path(job) / "brief.md"
     if not path.is_file():
         return False

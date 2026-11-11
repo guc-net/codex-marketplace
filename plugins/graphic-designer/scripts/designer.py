@@ -127,10 +127,11 @@ def cmd_draft(args) -> int:
 def cmd_choose(args) -> int:
     job = jobs.job_dir(args.job)
     value = jobs.choose(job, args.direction, args.direct)
+    stage = jobs.load(job).get("stage", "stages")
     if value == "direct":
-        info(f"OK: zlecenie {job.name} bez rundy kierunków (direct); etap: stages")
+        info(f"OK: zlecenie {job.name} bez rundy kierunków (direct); etap: {stage}")
     else:
-        info(f"OK: wybrany kierunek {value} w zleceniu {job.name}; etap: stages")
+        info(f"OK: wybrany kierunek {value} w zleceniu {job.name}; etap: {stage}")
     return 0
 
 
