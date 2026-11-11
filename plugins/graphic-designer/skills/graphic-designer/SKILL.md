@@ -42,12 +42,34 @@ a o kolory i fonty pytasz krótko (patrz `brand-kit`).
      powiedz, że aktualizację trzeba zrobić wg instrukcji instalacji (docs/instalacja.md
      w repozytorium github.com/guc-net/codex-marketplace). Po udanej aktualizacji:
      „Gotowe — zacznij nową rozmowę, żeby nowa wersja zadziałała”. Po „nie” pracuj dalej.
-   - `NIE SPRAWDZONO` (brak sieci w piaskownicy) → możesz raz poprosić o zgodę na
-     uruchomienie z dostępem do sieci; przy odmowie pomiń bez komentarza.
+   - `NIE SPRAWDZONO` (brak sieci w piaskownicy) → nie pomijaj tego po cichu, przynajmniej
+     za pierwszym razem. Zrób dokładnie to:
+     1. Powiedz jednym zdaniem: „Nie mam tu dostępu do sieci, więc nie sprawdzę, czy jest nowa
+        wersja pluginu.”
+     2. Poproś o jednorazową zgodę na uruchomienie `DESIGNER update-check` z dostępem do sieci
+        (okno zgody w aplikacji).
+     3. Po zgodzie uruchom polecenie jeszcze raz i postąp według wyniku powyżej.
+     4. Przy odmowie pracuj dalej bez sprawdzania i nie pytaj drugi raz w tej rozmowie.
 2. **Środowisko** — `DESIGNER env`. Pokazuje przeglądarkę (potrzebna do składania grafiki),
-   wersję Pythona i ustawienia.
+   jej próbny start (`BROWSER-TEST`), wersję Pythona i ustawienia.
    - `NO BROWSER` → powiedz wprost, że bez przeglądarki Chrome (albo Edge) nie złożę
      grafiki; szkice i kierunki nadal możesz robić. Podpowiedź ze skryptu przekaż swoimi słowami.
+   - `BROWSER-TEST: OK` → nic nie mów.
+   - `BROWSER-TEST: FAILED` (zwykle z dopiskiem `SANDBOX?:`) → przeglądarka nie startuje
+     w piaskownicy Codexa. Zrób dokładnie to:
+     1. Powiedz jednym zdaniem: „Przeglądarka, którą składam grafiki, nie może się tu
+        uruchomić — piaskownica jej na to nie pozwala.”
+     2. Poproś o jednorazową zgodę na uruchamianie `render`, `check`, `env` i `update-check`
+        poza piaskownicą (okno zgody w aplikacji, „uruchom bez piaskownicy”). Osoba może też
+        uruchomić aplikację z szerszymi uprawnieniami.
+     3. Po zgodzie uruchom `DESIGNER env` jeszcze raz poza piaskownicą; ma pokazać
+        `BROWSER-TEST: OK`.
+     4. **Zakaz:** nie przechodź po cichu na inne narzędzie (ImageMagick, Pillow, własny
+        skrypt, ręczne liczenie kontrastu), żeby wytworzyć plik ostateczny. Taki plik
+        nie przeszedł `check` (fonty, znaki, strefy bezpieczne, zamrożone warstwy), więc
+        nie wolno go pokazywać jako gotowego.
+     5. Przy odmowie powiedz jasno: „Bez zgody nie złożę grafiki ani jej nie sprawdzę.”
+        Zaproponuj wyłącznie kierunki i szkice; pliku „ostatecznego” nie dostarczaj.
    - `WARNING: OPENAI_API_KEY…` → ostrzeż jednym zdaniem: „Masz ustawiony klucz API, więc
      obrazy będą liczone według cennika API, a nie z Twojego planu ChatGPT.” Dalej decyduje osoba.
 3. **Marka** — `DESIGNER brand`. Szuka biblii marki od bieżącego folderu w górę.
@@ -60,8 +82,12 @@ a o kolory i fonty pytasz krótko (patrz `brand-kit`).
    - `LIBRARY: <folder>` → pracujesz tam. Zlecenie wskazujesz samym slugiem: `--job <slug>`.
    - `NOT SET` → **przed założeniem zlecenia** zapytaj, gdzie trzymać grafiki, z gotową
      odpowiedzią `~/Documents/Graphics-work` (Windows: `Documents\Graphics-work`). Po
-     odpowiedzi `DESIGNER library --set <folder>`. Zapis poza folderem rozmowy może wymagać
-     zgody w piaskownicy — poproś o nią raz, jednym zdaniem.
+     odpowiedzi `DESIGNER library --set <folder>`.
+   - **Biblioteki nie zmieniasz sam.** Nie ustawiaj zmiennej `GD_HOME` na inny folder, nie
+     wskazuj innej biblioteki i nie zakładaj drugiej (np. w folderze rozmowy), żeby ominąć
+     ograniczenia zapisu. Jeśli skonfigurowany folder jest w piaskownicy tylko do odczytu,
+     poproś o jednorazową zgodę na zapis właśnie tam, jednym zdaniem. Przy odmowie powiedz,
+     że bez zapisu w bibliotece nie założysz zlecenia, i zapytaj, co robić dalej.
 5. **Stan** — `DESIGNER status`. Powiedz jednym zdaniem, co jest w toku (tytuł, etap,
    ile pakietów). Przy `NO JOBS` nie komentuj.
 

@@ -77,6 +77,56 @@ class SkillsCase(unittest.TestCase):
         for phrase in ("update-check", "env", "Graphics-work", "OPENAI_API_KEY"):
             self.assertIn(phrase, entry)
 
+    def test_sandbox_handling_in_entry_skill(self):
+        entry = (SKILLS / "graphic-designer" / "SKILL.md").read_text(encoding="utf-8")
+        for phrase in ("BROWSER-TEST: FAILED", "SANDBOX?:", "poza piaskownicą", "jednorazową zgodę",
+                       "ImageMagick", "Zakaz", "nie przechodź po cichu",
+                       "nie dostarczaj", "kierunki i szkice"):
+            self.assertIn(phrase, entry)
+        for cmd in ("`render`", "`check`", "`env`", "`update-check`"):
+            self.assertIn(cmd, entry)
+
+    def test_network_permission_is_explicit_step(self):
+        entry = (SKILLS / "graphic-designer" / "SKILL.md").read_text(encoding="utf-8")
+        block = entry[entry.index("`NIE SPRAWDZONO`"):entry.index("**Środowisko**")]
+        self.assertIn("nie pomijaj tego po cichu", block)
+        for n in ("1.", "2.", "3."):
+            self.assertIn(n, block)
+        self.assertIn("zgodę", block)
+
+    def test_library_not_changed_without_asking(self):
+        entry = (SKILLS / "graphic-designer" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("Biblioteki nie zmieniasz sam", entry)
+        self.assertIn("GD_HOME", entry)
+        self.assertIn("nie zakładaj drugiej", entry)
+        self.assertIn("zgodę na zapis", entry)
+
+    def test_mandatory_order_in_design_job(self):
+        job = (SKILLS / "design-job" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("## Obowiązkowa kolejność", job)
+        head = job[job.index("## Obowiązkowa kolejność"):job.index("## Kto co robi")]
+        positions = [head.index(w) for w in ("Brief", "Kierunki", "`draft`", "`render`", "`check`",
+                                             "Samoocena", "Lista do sprawdzenia", "pokaz")]
+        self.assertEqual(positions, sorted(positions))
+        # „Obowiązkowa kolejność” jest przed resztą procedury
+        self.assertLess(job.index("## Obowiązkowa kolejność"), job.index("## 1. Zlecenie"))
+
+    def test_topic_format_date_request_is_not_finished_look(self):
+        job = (SKILLS / "design-job" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("tylko temat, format i datę", job)
+        self.assertIn("**nie** jest takim opisem", job)
+        self.assertIn("2–4", job)
+        self.assertIn("zaproponuj trzy kierunki i zatrzymaj się", job)
+
+    def test_generated_images_go_through_draft_and_freeze(self):
+        job = (SKILLS / "design-job" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("przejść przez `draft`", job)
+        self.assertIn("zamrożony przez `freeze`", job)
+        self.assertIn("nie kopiuj go do `layers/` ręcznie", job)
+        self.assertIn("bez `check` z wynikiem `OK`", job)
+        self.assertIn("nie składaj grafiki innym", job)
+        self.assertIn("do sprawdzenia przez człowieka", job)
+
 
 if __name__ == "__main__":
     unittest.main()

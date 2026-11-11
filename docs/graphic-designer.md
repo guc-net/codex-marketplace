@@ -57,6 +57,19 @@ Uwaga: jeśli w środowisku ustawiony jest klucz `OPENAI_API_KEY`, Codex może l
 cennika API (za każdy obraz), a nie z abonamentu. Polecenie `env` ostrzega o tym. Nie ustawiaj
 klucza, jeśli chcesz zostać przy abonamencie.
 
+## Piaskownica Codexa
+
+Codex uruchamia polecenia w piaskownicy, która ogranicza dostęp do sieci, do plików i do
+niektórych programów. Przeglądarka Chrome w piaskownicy czasem nie startuje i kończy się
+awarią. Wtedy `env` pokazuje `BROWSER-TEST: FAILED`, a `render` zwraca komunikat zaczynający
+się od `SANDBOX?:`.
+
+To nie jest błąd Twojej marki ani grafiki. Plugin poprosi Cię o **jednorazową zgodę** na
+uruchomienie polecenia poza piaskownicą (okno zgody w aplikacji). Możesz też uruchomić
+aplikację z szerszymi uprawnieniami. Bez zgody plugin nie złoży ani nie sprawdzi grafiki; może
+tylko proponować kierunki i szkice. Podobnie pyta o zgodę na dostęp do sieci (sprawdzenie
+aktualizacji) i na zapis w Twojej bibliotece grafik.
+
 ## Telefon
 
 Nie wiadomo jeszcze, czy plugin działa w aplikacji ChatGPT na telefonie. Nie sprawdzaliśmy tego,

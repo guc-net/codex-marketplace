@@ -12,6 +12,33 @@ Przykłady poniżej używają zmyślonej marki „Kiwi Studio”.
 Człowiek ocenia i akceptuje; ty proponujesz. Niczego nie publikujesz w mediach
 społecznościowych — plugin tego nie robi. Do repozytorium trafiają tylko grafiki ostateczne.
 
+## Obowiązkowa kolejność
+
+Zanim zaczniesz, przejdź tę listę po kolei. Nic nie pomijasz po cichu.
+
+1. **Brief** — pytania i `brief.md` (krok 1).
+2. **Kierunki + STOP** — trzy różne kierunki i czekanie na wybór (krok 2).
+3. **Etapy z `draft` i `freeze`** — każdy obraz z generatora przechodzi przez `draft`,
+   a po akceptacji jest zamrożony przez `freeze` (krok 3).
+4. **`render`** — składanie plików (krok 5).
+5. **`check`** — musi dać `OK` (krok 5).
+6. **Samoocena** według rubryki z `../graphic-designer/references/critique.md`.
+7. **Lista do sprawdzenia przez człowieka** — po każdym pokazie pracy (krok 6, punkt 4).
+8. **Dopiero potem pokaz** osobie jako gotowa praca.
+
+Kierunki pomijasz tylko w dwóch przypadkach: osoba opisała dokładnie gotowy wygląd, albo
+to zwykłe nałożenie (logo na zdjęcie). Prośba, która podaje tylko temat, format i datę
+(np. „post na warsztaty ceramiki w sobotę”), **nie** jest takim opisem: najpierw zadaj 2–4
+pytań do briefu (cel i odbiorca, nastrój, elementy obowiązkowe, teksty dosłownie), potem
+zaproponuj trzy kierunki i zatrzymaj się.
+
+Każdy obraz z generatora użyty w kompozycji ma przejść przez `draft` i po akceptacji zostać
+zamrożony przez `freeze`; nie kopiuj go do `layers/` ręcznie (etap zlecenia zostaje wtedy
+na „brief”). Osoba nie zobaczy „finału” bez `check` z wynikiem `OK`. Jeśli `render` albo
+`check` nie działa (np. przeglądarka nie startuje w piaskownicy: wynik z `SANDBOX?:`),
+poproś o jednorazową zgodę na uruchomienie poza piaskownicą; nie składaj grafiki innym
+narzędziem. Po każdym pokazie pracy wypisz listę „do sprawdzenia przez człowieka”.
+
 ## Kto co robi: generator a składanie
 
 Generator obrazów przy każdej edycji renderuje cały obraz od nowa, nie przyjmuje własnych
@@ -117,9 +144,10 @@ Zapisz wersję przez `draft` z krótkim opisem. Stały blok stylu wklejaj dosło
    bezpieczne. `OK` (kod 0) → dalej. `PROBLEMS: n` (kod 3) → popraw albo powiedz wprost, czego nie
    da się naprawić. Brakujący znak w foncie (np. „ą”) to błąd do naprawienia, nie do pominięcia.
 5. Samoocena według rubryki w `../graphic-designer/references/critique.md` (14 punktów, przy każdym: spełnia /
-   nie spełnia i jedno zdanie dowodu). Sprawdź też `../graphic-designer/references/generic-ai-tells.md`. Bez biblii
+   nie spełnia i jedno zdanie dowodu). Nie pomijaj jej. Sprawdź też `../graphic-designer/references/generic-ai-tells.md`. Bez biblii
    marki pomiń punkty marki i powiedz o tym.
-6. Dopiero wtedy pokaż pracę osobie.
+6. Dopiero wtedy pokaż pracę osobie i wypisz listę „do sprawdzenia przez człowieka” (punkt 4 w
+   rozdziale 6).
 
 ## 6. Akceptacja i pakiet
 

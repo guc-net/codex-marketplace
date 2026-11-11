@@ -7,7 +7,7 @@ wersje przychodzą z tego samego miejsca.
 | Plugin | Co robi | Wersja |
 |---|---|---|
 | [komiks](plugins/komiks/) | Pracownia komiksu ze stałymi postaciami: biblia stylu i postaci z zatwierdzanymi zmianami, odcinki z wersjami plansz, strona HTML | 0.3.0 |
-| [graphic-designer](plugins/graphic-designer/) | Projektant grafik zgodnych z marką: biblia marki, plakaty i posty składane z warstw, sprawdzanie kontrastu, znaków i stref bezpiecznych, zapis każdej wersji | 0.1.0 |
+| [graphic-designer](plugins/graphic-designer/) | Projektant grafik zgodnych z marką: biblia marki, plakaty i posty składane z warstw, sprawdzanie kontrastu, znaków i stref bezpiecznych, zapis każdej wersji | 0.1.1 |
 
 ## Instalacja
 
