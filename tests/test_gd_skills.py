@@ -8,7 +8,7 @@ from pathlib import Path
 PLUGIN = Path(__file__).resolve().parent.parent / "plugins" / "graphic-designer"
 SKILLS = PLUGIN / "skills"
 NAMES = ("graphic-designer", "design-job", "brand-kit", "design-review")
-REQUEST_WORDS = ("Plakat", "Grafika", "Ocena", "Biblia", "Start")
+REQUEST_WORDS = ("Zaprojektuj", "Plakat", "Grafika", "Ocena", "Biblia", "Start")
 
 
 def frontmatter(path):
@@ -105,8 +105,9 @@ class SkillsCase(unittest.TestCase):
         job = (SKILLS / "design-job" / "SKILL.md").read_text(encoding="utf-8")
         self.assertIn("## Obowiązkowa kolejność", job)
         head = job[job.index("## Obowiązkowa kolejność"):job.index("## Kto co robi")]
-        positions = [head.index(w) for w in ("Brief", "Kierunki", "`draft`", "`render`", "`check`",
-                                             "Samoocena", "Lista do sprawdzenia", "pokaz")]
+        positions = [head.index(w) for w in ("**Brief**", "**Kierunki", "**`choose`**", "Etapy z `draft`",
+                                             "**`render`**", "**`check`**", "**Samoocena**",
+                                             "**Lista do sprawdzenia", "**Dopiero potem pokaz**")]
         self.assertEqual(positions, sorted(positions))
         # „Obowiązkowa kolejność” jest przed resztą procedury
         self.assertLess(job.index("## Obowiązkowa kolejność"), job.index("## 1. Zlecenie"))
@@ -126,6 +127,49 @@ class SkillsCase(unittest.TestCase):
         self.assertIn("bez `check` z wynikiem `OK`", job)
         self.assertIn("nie składaj grafiki innym", job)
         self.assertIn("do sprawdzenia przez człowieka", job)
+
+    def test_layperson_trigger_words_open_the_two_main_descriptions(self):
+        for name in ("graphic-designer", "design-job"):
+            desc = frontmatter(SKILLS / name / "SKILL.md")["description"]
+            self.assertTrue(desc.startswith("Zaprojektuj plakat, post, relację"), f"{name}: {desc[:50]}")
+
+    def test_intro_block_in_entry_skill(self):
+        entry = " ".join((SKILLS / "graphic-designer" / "SKILL.md").read_text(encoding="utf-8").split())
+        self.assertIn("Pierwsza odpowiedź w rozmowie o grafice", entry)
+        for part in ("Jak pracujemy:", "1) kilka pytań o zlecenie,",
+                     "2) trzy kierunki do wyboru (zatrzymam się i poczekam na Twoją decyzję),",
+                     "3) dopracowanie wybranego etapami,", "4) złożenie i automatyczna kontrola,",
+                     "5) gotowe pliki do Twojej akceptacji — niczego nie publikuję."):
+            self.assertIn(part, entry)
+        self.assertIn("raz na rozmowę", entry)
+        block = (SKILLS / "graphic-designer" / "SKILL.md").read_text(encoding="utf-8")
+        block = block[block.index("Jak pracujemy:"):]
+        self.assertLessEqual(len(block[:block.index("```")].strip().splitlines()), 4)
+
+    def test_failed_browser_test_without_sandbox_marker_is_neutral(self):
+        entry = " ".join((SKILLS / "graphic-designer" / "SKILL.md").read_text(encoding="utf-8").split())
+        self.assertIn("nie twierdź, że to piaskownica", entry)
+        self.assertIn("nieznanej przyczyny", entry)
+
+    def test_choose_in_design_job_order(self):
+        job = (SKILLS / "design-job" / "SKILL.md").read_text(encoding="utf-8")
+        head = job[job.index("## Obowiązkowa kolejność"):job.index("## Kto co robi")]
+        self.assertLess(head.index("Kierunki + STOP"), head.index("`choose`"))
+        self.assertLess(head.index("`choose`"), head.index("Etapy z `draft` i `freeze`"))
+        self.assertIn("DESIGNER choose --job <slug> --direct", job)
+        self.assertIn("DESIGNER choose --job <slug> --direction", job)
+        self.assertIn("process", head)
+
+    def test_no_claim_that_stage_stays_brief(self):
+        job = (SKILLS / "design-job" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertNotIn("zostaje wtedy", job)
+        self.assertIn("nie jest zamrożona", job)
+
+    def test_refusal_means_no_final_file_in_design_job(self):
+        job = (SKILLS / "design-job" / "SKILL.md").read_text(encoding="utf-8")
+        job = " ".join(job.split())
+        self.assertIn("Przy odmowie zgody nie ma pliku ostatecznego", job)
+        self.assertIn("Po pokazie złożonej grafiki wypisz listę", job)
 
 
 if __name__ == "__main__":

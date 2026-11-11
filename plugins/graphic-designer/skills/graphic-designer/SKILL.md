@@ -1,6 +1,6 @@
 ---
 name: graphic-designer
-description: Start pracy projektanta grafik. Używaj na początku każdej rozmowy o plakacie, poście, relacji, okładce, logo, napisie, grafice, palecie albo kolorach marki — sprawdza aktualizację pluginu, znajduje bibliotekę marki i zlecenia w toku, ostrzega o kosztach i kieruje do właściwej procedury.
+description: Zaprojektuj plakat, post, relację, okładkę, logo, napis albo grafikę; kolory i paleta marki. Start pracy projektanta grafik — używaj na początku każdej rozmowy o plakacie, poście, relacji, okładce, logo, napisie, grafice, palecie albo kolorach marki — sprawdza aktualizację pluginu, znajduje bibliotekę marki i zlecenia w toku, ostrzega o kosztach i kieruje do właściwej procedury.
 ---
 
 # Projektant grafik — start rozmowy
@@ -42,23 +42,26 @@ a o kolory i fonty pytasz krótko (patrz `brand-kit`).
      powiedz, że aktualizację trzeba zrobić wg instrukcji instalacji (docs/instalacja.md
      w repozytorium github.com/guc-net/codex-marketplace). Po udanej aktualizacji:
      „Gotowe — zacznij nową rozmowę, żeby nowa wersja zadziałała”. Po „nie” pracuj dalej.
-   - `NIE SPRAWDZONO` (brak sieci w piaskownicy) → nie pomijaj tego po cichu, przynajmniej
-     za pierwszym razem. Zrób dokładnie to:
+   - `NIE SPRAWDZONO` (brak sieci w piaskownicy) → nie pomijaj tego po cichu. Zrób dokładnie to:
      1. Powiedz jednym zdaniem: „Nie mam tu dostępu do sieci, więc nie sprawdzę, czy jest nowa
         wersja pluginu.”
      2. Poproś o jednorazową zgodę na uruchomienie `DESIGNER update-check` z dostępem do sieci
         (okno zgody w aplikacji).
      3. Po zgodzie uruchom polecenie jeszcze raz i postąp według wyniku powyżej.
      4. Przy odmowie pracuj dalej bez sprawdzania i nie pytaj drugi raz w tej rozmowie.
+     5. Jeśli w kroku 2 (Środowisko) i tak będzie trzeba prosić o wyjście z piaskownicy, poproś
+        o jedną zgodę na oba polecenia naraz (`update-check` i `env`), zamiast dwóch próśb.
 2. **Środowisko** — `DESIGNER env`. Pokazuje przeglądarkę (potrzebna do składania grafiki),
    jej próbny start (`BROWSER-TEST`), wersję Pythona i ustawienia.
    - `NO BROWSER` → powiedz wprost, że bez przeglądarki Chrome (albo Edge) nie złożę
      grafiki; szkice i kierunki nadal możesz robić. Podpowiedź ze skryptu przekaż swoimi słowami.
    - `BROWSER-TEST: OK` → nic nie mów.
-   - `BROWSER-TEST: FAILED` (zwykle z dopiskiem `SANDBOX?:`) → przeglądarka nie startuje
-     w piaskownicy Codexa. Zrób dokładnie to:
-     1. Powiedz jednym zdaniem: „Przeglądarka, którą składam grafiki, nie może się tu
-        uruchomić — piaskownica jej na to nie pozwala.”
+   - `BROWSER-TEST: FAILED` → przeglądarka nie startuje. Zrób dokładnie to:
+     1. Powiedz jednym zdaniem, co się dzieje. Gdy wynik ma dopisek `SANDBOX?:`: „Przeglądarka,
+        którą składam grafiki, nie może się tu uruchomić — piaskownica jej na to nie pozwala.”
+        Gdy dopisku nie ma (np. kod 1 albo przekroczenie czasu), nie twierdź, że to piaskownica:
+        pokaż komunikat swoimi słowami, powiedz, że przeglądarka nie startuje z nieznanej
+        przyczyny, i zaproponuj uruchomienie poza piaskownicą jako próbę.
      2. Poproś o jednorazową zgodę na uruchamianie `render`, `check`, `env` i `update-check`
         poza piaskownicą (okno zgody w aplikacji, „uruchom bez piaskownicy”). Osoba może też
         uruchomić aplikację z szerszymi uprawnieniami.
@@ -90,6 +93,21 @@ a o kolory i fonty pytasz krótko (patrz `brand-kit`).
      że bez zapisu w bibliotece nie założysz zlecenia, i zapytaj, co robić dalej.
 5. **Stan** — `DESIGNER status`. Powiedz jednym zdaniem, co jest w toku (tytuł, etap,
    ile pakietów). Przy `NO JOBS` nie komentuj.
+
+## Pierwsza odpowiedź w rozmowie o grafice
+
+Gdy kroki startowe są za Tobą, **pierwsza** odpowiedź w rozmowie o grafice zawiera krótkie
+wprowadzenie, dokładnie w tej postaci (cztery krótkie linie, po polsku, prostym językiem):
+
+```
+Jak pracujemy:
+1) kilka pytań o zlecenie, 2) trzy kierunki do wyboru (zatrzymam się i poczekam na Twoją decyzję),
+3) dopracowanie wybranego etapami, 4) złożenie i automatyczna kontrola,
+5) gotowe pliki do Twojej akceptacji — niczego nie publikuję.
+```
+
+Wprowadzenie podajesz raz na rozmowę, nie przy każdej odpowiedzi. Zaraz po nim zadaj
+pytania do briefu (skill **design-job**).
 
 ## Koszty — jedno zdanie, gdy dojdzie do generowania
 

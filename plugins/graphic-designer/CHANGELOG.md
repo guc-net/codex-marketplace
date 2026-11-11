@@ -7,10 +7,14 @@ pisz więc tak, żeby rozumiał to ktoś, kto nie programuje.
 
 - Naprawa po pierwszym teście w aplikacji Codex na Macu: przeglądarka, którą plugin składa grafiki, wywracała się w piaskownicy Codexa, a asystent po cichu przechodził na inne narzędzie i pomijał sprawdzanie.
 - Gdy przeglądarka się wywróci, plugin mówi wprost, że to zapewne piaskownica, i że trzeba poprosić Cię o jednorazową zgodę na uruchomienie poza nią.
-- Polecenie `env` robi teraz próbny start przeglądarki i pokazuje `BROWSER-TEST: OK` albo `FAILED`.
+- Polecenie sprawdzające środowisko robi teraz próbny start przeglądarki i pokazuje, czy się udał. Przeglądarka zabita z zewnątrz (np. brak pamięci) nie jest już brana za problem piaskownicy.
 - Asystent nie zmienia po cichu biblioteki zleceń i nie zakłada drugiej; o zapis w Twojej bibliotece prosi o zgodę.
 - Brak sieci przy sprawdzaniu aktualizacji: asystent pyta raz o zgodę zamiast pomijać.
 - Procedura zlecenia ma obowiązkową kolejność: brief, kierunki do wyboru, etapy z zamrożeniem obrazów, składanie, sprawdzenie, samoocena, lista do sprawdzenia przez człowieka. Prośba z samym tematem, formatem i datą nie pomija pytań ani kierunków.
+- Nowe polecenie `choose`: zapisuje, który kierunek wybrała osoba (albo że zlecenie nie ma rundy kierunków).
+- Skrypt pilnuje procesu: pokazuje etap zlecenia i następny krok, a sprawdzenie zgłasza błąd, gdy brief jest pusty albo nie wybrano kierunku; bez czystego sprawdzenia nie da się zamknąć pakietu. Komunikat o niezamrożonej warstwie mówi teraz, co zrobić.
+- Na początku rozmowy o grafice asystent krótko mówi, jak pracujemy (pytania, kierunki, etapy, kontrola, akceptacja).
+- Dokumentacja: „Jak zacząć (krok po kroku)” w opisie pluginu i w dokumentacji, z podpowiedzią, jak włączyć plugin przez `@`, jaki model wybrać i co zrobić, gdy asystent pomija kroki.
 
 ## 0.1.0 — 2026-11-11
 

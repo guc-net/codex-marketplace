@@ -33,6 +33,29 @@ sprawdzenia przez człowieka.
 Biblia marki to folder `brand/` z plikiem `brand.md`, logo i fontami. Jeśli jej nie masz,
 plugin założy szkielet i poprowadzi Cię przez uzupełnienie.
 
+## Jak zacząć (krok po kroku)
+
+Dla kogoś, kto nie wie nic o pluginach.
+
+1. **Zainstaluj plugin, potem zawsze zacznij NOWĄ rozmowę.** Rozmowa założona przed instalacją
+   albo przed aktualizacją nie widzi pluginu ani jego nowej wersji.
+2. **Otwórz folder, w którym leży `brand/`** (biblia marki: kolory, fonty, logo). Jeśli takiego
+   folderu nie masz, otwórz dowolny: plugin zapyta wtedy o logo, kolory i fonty.
+3. **Napisz, co chcesz zrobić.** Plugin zwykle włącza się sam, gdy prosisz o grafikę. Żeby mieć
+   pewność, wpisz `@` i wybierz `graphic-designer` przed swoją prośbą (w aplikacji Codex
+   podpowiedź brzmi „Type @ to invoke the plugin or one of its bundled skills explicitly”).
+   W wierszu poleceń `/plugins` pokazuje zainstalowane pluginy.
+4. **Wybierz model:** zalecany jest `gpt-6.1-sol` na poziomie Medium. W wierszu poleceń
+   zmienisz go przez `/model`, w aplikacji przez wybór modelu pod polem wiadomości.
+5. **Czego oczekiwać.** Agent powinien: zadać kilka pytań o zlecenie, pokazać trzy kierunki
+   i **poczekać na Twój wybór**, dopracować wybrany etapami, złożyć grafikę, sprawdzić ją
+   automatycznie i dać listę rzeczy do sprawdzenia przez Ciebie. Jeśli pominie krok (np. od razu
+   pokaże „gotową” grafikę), napisz: **„Wróć do procedury pluginu graphic-designer: najpierw
+   brief i kierunki.”**
+6. **Okno z prośbą o zgodę** (piaskownica Codexa, sieć, zapis w Twoim folderze) znaczy: zezwól
+   jednorazowo. Plugin prosi tylko wtedy, gdy bez tego nie złoży albo nie sprawdzi grafiki.
+   Szczegóły są niżej, w sekcji „Piaskownica Codexa”.
+
 ## Jak działa spójność
 
 Model nie pamięta Twojej marki między rozmowami, więc spójność bierze się z kilku rzeczy:
