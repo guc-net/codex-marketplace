@@ -88,7 +88,7 @@ class TestBrand(Tmp):
         shutil.copytree(KIWI, deep)
         work = deep / "graphics" / "2026-12-x"
         work.mkdir(parents=True)
-        self.assertEqual(brand.find_brand(work), deep / "brand")
+        self.assertEqual(brand.find_brand(work), (deep / "brand").resolve())
         self.assertIsNone(brand.find_brand(self.tmp / "nic"))
 
     def test_validate_reports_all_problems(self):
