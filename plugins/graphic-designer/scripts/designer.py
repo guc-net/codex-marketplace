@@ -269,6 +269,68 @@ def cmd_update_check(args) -> int:
     return 2 if text.startswith("NIE SPRAWDZONO") else 0
 
 
+def cmd_setup_launcher(args) -> int:
+    from gd import onboard
+    status = onboard.setup_launcher()
+    path = onboard.launcher_path()
+    info(f"LAUNCHER: {path}")
+    info({"installed": "OK: zainstalowano stały skrypt startowy.",
+          "updated": "OK: zaktualizowano stały skrypt startowy.",
+          "current": "OK: stały skrypt startowy jest już aktualny."}[status])
+    info(f"Używaj go tak: python3 {path} <polecenie>")
+    return 0
+
+
+def _rules_warning() -> None:
+    from gd import onboard
+    info("UWAGA: te polecenia będą się uruchamiać poza piaskownicą Codexa, bez pytania o zgodę: "
+         + ", ".join(onboard.ALLOWED_SUBCOMMANDS) + ".")
+
+
+def cmd_setup_rules(args) -> int:
+    from gd import onboard
+    path = onboard.rules_file()
+    if args.remove:
+        status = onboard.remove_rules()
+        if status == "absent":
+            info(f"OK: w {path} nie ma bloku graphic-designer; nic nie zmieniam.")
+            return 0
+        info(f"OK: usunięto blok graphic-designer z {path}; reszta pliku bez zmian.")
+        info("Uruchom Codex ponownie, żeby przestał stosować te reguły (czyta je przy starcie).")
+        return 0
+    if args.apply:
+        status = onboard.apply_rules()
+        if status == "current":
+            info(f"OK: blok reguł w {path} jest już aktualny; nic nie zmieniam.")
+            return 0
+        info({"created": f"OK: utworzono {path} z blokiem reguł.",
+              "added": f"OK: dopisano blok reguł na końcu {path}; reszta pliku bez zmian.",
+              "updated": f"OK: zaktualizowano blok reguł w {path} (zmieniła się ścieżka skryptu)."}[status])
+        _rules_warning()
+        info("Uruchom Codex ponownie, żeby wczytał reguły (czyta je przy starcie). "
+             "Sprawdzisz je poleceniem doctor. Cofnięcie: setup-rules --remove.")
+        return 0
+    launcher = onboard.launcher_path()
+    info(f"RULES: {path} (nic nie zapisuję; to tylko propozycja)")
+    if not launcher.is_file():
+        info(f"UWAGA: nie ma jeszcze stałego skryptu startowego {launcher}. Najpierw: "
+             f"python3 {onboard.plugin_script()} setup-launcher")
+    info("Na końcu tego pliku pojawi się taki blok (reszty pliku nie ruszam):")
+    info()
+    info(onboard.rules_block(launcher))
+    _rules_warning()
+    info(f"Zapis po Twojej zgodzie: {onboard.current_command()} setup-rules --apply. "
+         "Cofnięcie: setup-rules --remove. Po zapisie uruchom Codex ponownie, bo czyta reguły przy starcie.")
+    return 0
+
+
+def cmd_doctor(args) -> int:
+    from gd import onboard
+    for line in onboard.doctor_lines():
+        info(line)
+    return 0
+
+
 def parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="designer.py", description="Projektant grafik.")
     sub = p.add_subparsers(dest="command", required=True)
@@ -358,6 +420,15 @@ def parser() -> argparse.ArgumentParser:
     s.add_argument("--source", help="adres z plugin.json i CHANGELOG.md (domyślnie GitHub)")
     s.add_argument("--cache", help="plik z wynikiem (domyślnie ~/.graphic-designer/update.json)")
     s.set_defaults(func=cmd_update_check)
+    s = sub.add_parser("setup-launcher", help="zainstaluj stały skrypt startowy (stała ścieżka dla reguł Codexa)")
+    s.set_defaults(func=cmd_setup_launcher)
+    s = sub.add_parser("setup-rules", help="pokaż (domyślnie), dopisz albo usuń reguły Codexa pluginu")
+    g = s.add_mutually_exclusive_group()
+    g.add_argument("--apply", action="store_true", help="dopisz blok reguł na końcu pliku reguł Codexa")
+    g.add_argument("--remove", action="store_true", help="usuń blok reguł pluginu (reszty pliku nie rusza)")
+    s.set_defaults(func=cmd_setup_rules)
+    s = sub.add_parser("doctor", help="sprawdź konfigurację: co działa, co jest do zrobienia i jaki następny krok")
+    s.set_defaults(func=cmd_doctor)
     return p
 
 

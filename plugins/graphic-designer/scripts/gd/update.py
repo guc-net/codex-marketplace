@@ -3,21 +3,18 @@ from __future__ import annotations
 
 import datetime
 import json
-import os
 import re
 import urllib.request
 from pathlib import Path
 
-from gd.common import PLUGIN_ROOT
+from gd.common import PLUGIN_ROOT, gd_home
 
 SOURCE_URL = "https://raw.githubusercontent.com/guc-net/codex-marketplace/main/plugins/graphic-designer/"
 MARKETPLACE = "guc-net"
 
 
 def default_cache() -> Path:
-    home = os.environ.get("GD_HOME")
-    base = Path(home).expanduser() if home else Path.home() / ".graphic-designer"
-    return base / "update.json"
+    return gd_home() / "update.json"
 
 
 def installed_version() -> str:
