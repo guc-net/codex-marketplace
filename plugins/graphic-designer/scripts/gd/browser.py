@@ -22,6 +22,12 @@ _LINUX = ["google-chrome", "chromium", "chromium-browser", "microsoft-edge"]
 _WIN = [("Google", "Chrome", "Application", "chrome.exe"),
         ("Microsoft", "Edge", "Application", "msedge.exe")]
 
+# Przeglądarka po regule Codexa działa poza piaskownicą (i z siecią), więc odcinamy to, czego do
+# składania grafiki nie potrzebuje: rozszerzenia, synchronizację, ruch w tle i rozwiązywanie nazw
+# (żadna nazwa hosta się nie rozwiąże). Drugą linią obrony jest zasada CSP wstrzykiwana do strony.
+HARDEN_FLAGS = ["--disable-extensions", "--disable-sync", "--disable-background-networking",
+                "--host-resolver-rules=MAP * ~NOTFOUND"]
+
 _HINT = ("zainstaluj Google Chrome (albo Chromium, Microsoft Edge) albo wskaż przeglądarkę zmienną "
          "środowiskową GD_BROWSER=<ścieżka do pliku programu>")
 
@@ -104,7 +110,7 @@ def _exec(target: str, extra: List[str], w: int, h: int, capture_stdout: bool = 
         cmd = [str(exe), "--headless", "--disable-gpu", "--hide-scrollbars", "--no-first-run",
                "--no-default-browser-check", f"--user-data-dir={profile}",
                f"--window-size={w},{h}", f"--virtual-time-budget={VIRTUAL_TIME_MS}",
-               "--default-background-color=00000000"]
+               "--default-background-color=00000000"] + HARDEN_FLAGS
         if _is_root():
             cmd.append("--no-sandbox")
         if os.name == "posix":
