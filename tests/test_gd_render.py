@@ -92,8 +92,6 @@ class NoRender(EnvVars):
             "a4-print": (2551, 3579, True, [216, 303], (71, 71, 71, 71)),
             "a3-print": (3579, 5031, True, [303, 426], (71, 71, 71, 71)),
         }
-        for n in range(1, 11):  # slajdy karuzeli: rozmiar i strefy jak ig-post
-            table[f"ig-carousel-{n}"] = (1080, 1350, False, None, (34, 34, 34, 34))
         self.assertEqual(set(f), set(table))
         for k, (w, h, pdf, mm, safe) in table.items():
             s = f[k]["safe"]

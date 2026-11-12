@@ -34,10 +34,6 @@ Skrypt pilnuje tej kolejności: `status` pokazuje etap i następny krok, a `chec
 błąd `process`, gdy brief jest pusty albo nie zapisano wyboru kierunku (a `finalize` bez
 czystego `check` nie zamknie pakietu).
 
-Gdy grafika ma trafić na Instagram, Facebooka albo inną sieć (post, karuzela, relacja, okładka
-rolki), przeczytaj najpierw procedurę **social-content**: dobiera format do celu, hasło otwierające
-(hak) i opis posta, a kierunki różnią się **sposobem przyciągnięcia uwagi**, nie tylko wyglądem.
-
 Kierunki pomijasz tylko w dwóch przypadkach: osoba opisała dokładnie gotowy wygląd, albo
 to zwykłe nałożenie (logo na zdjęcie). Wtedy od razu `choose --direct`. Prośba, która podaje tylko temat, format i datę
 (np. „post na warsztaty ceramiki w sobotę”), **nie** jest takim opisem: najpierw zadaj 2–4

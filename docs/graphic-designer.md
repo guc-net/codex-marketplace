@@ -66,21 +66,6 @@ Dla kogoś, kto nie wie nic o pluginach.
    konfiguracji z punktu 2 większość tych okien znika. Szczegóły są niżej, w sekcji „Piaskownica
    Codexa”.
 
-## Posty na media społecznościowe
-
-Gdy prosisz o post na Instagram, karuzelę, relację albo okładkę rolki, włącza się procedura
-**social-content**. Asystent:
-
-- pyta, co osoba ma zrobić po zobaczeniu posta (jeden cel), i dobiera format (post 4:5, karuzela
-  `ig-carousel-1` … `ig-carousel-10`, relacja 9:16),
-- proponuje trzy hasła otwierające do wyboru,
-- pokazuje trzy kierunki, które różnią się **sposobem przyciągnięcia uwagi** (np. duże hasło,
-  człowiek w akcji, zbliżenie na fakturę), i czeka na Twój wybór,
-- przed pokazem ocenia grafikę w pomniejszeniu do szerokości telefonu („test przewijania”),
-- pisze propozycję opisu posta i tekstu alternatywnego.
-
-Plugin niczego nie publikuje, nie mierzy wyników i nie obiecuje zasięgu: grafikę i opis wrzucasz sam.
-
 ## Jak działa spójność
 
 Model nie pamięta Twojej marki między rozmowami, więc spójność bierze się z kilku rzeczy:

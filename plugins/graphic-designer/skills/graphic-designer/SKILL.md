@@ -169,9 +169,6 @@ o wiele wariantów powiedz o tym, zanim zaczniesz.
 ## Dokąd dalej
 
 - Plakat, post, relacja, okładka, napis, logo na zdjęciu, wydruk → procedura **design-job**.
-- Treści na social media (post na Instagram, karuzela, relacja, okładka rolki, opis posta,
-  pomysł na hasło albo serię) → procedura **social-content**, a składanie grafiki dalej przez
-  **design-job**.
 - Kolory, fonty, logo, „zapisz markę”, „zmień kolor marki”, przykłady „tak/nie” → procedura **brand-kit**.
 - „Oceń tę grafikę”, „co myślisz o tym plakacie” (osoba wkleja gotową) → procedura **design-review**.
 - „Przejmij grafikę z repozytorium i popraw” → `DESIGNER adopt --package <folder>`, potem **design-job**.

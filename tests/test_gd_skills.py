@@ -7,7 +7,7 @@ from pathlib import Path
 
 PLUGIN = Path(__file__).resolve().parent.parent / "plugins" / "graphic-designer"
 SKILLS = PLUGIN / "skills"
-NAMES = ("graphic-designer", "design-job", "brand-kit", "design-review", "setup", "social-content")
+NAMES = ("graphic-designer", "design-job", "brand-kit", "design-review", "setup")
 REQUEST_WORDS = ("Zaprojektuj", "Plakat", "Grafika", "Ocena", "Biblia", "Start", "Skonfiguruj")
 
 
@@ -44,7 +44,7 @@ class SkillsCase(unittest.TestCase):
     def test_no_bare_reference_names(self):
         """Wiedza tylko jako references/<x>.md (ruling R2), nigdy goły plik w backtickach."""
         bare = ("critique", "typography", "color", "composition", "poster", "formats", "print",
-                "logo", "image-prompting", "generic-ai-tells", "social", "copy-pl")
+                "logo", "image-prompting", "generic-ai-tells")
         for name in NAMES:
             text = (SKILLS / name / "SKILL.md").read_text(encoding="utf-8")
             for b in bare:
@@ -162,18 +162,6 @@ class SkillsCase(unittest.TestCase):
         self.assertIn("## Jak formatujesz odpowiedzi", entry)
         self.assertIn("w osobnej linii", entry)
         self.assertIn("pustą linię", entry)
-
-    def test_social_routing_and_skill(self):
-        entry = (SKILLS / "graphic-designer" / "SKILL.md").read_text(encoding="utf-8")
-        self.assertIn("**social-content**", entry)
-        job = (SKILLS / "design-job" / "SKILL.md").read_text(encoding="utf-8")
-        self.assertIn("**social-content**", job)
-        social = (SKILLS / "social-content" / "SKILL.md").read_text(encoding="utf-8")
-        for phrase in ("trzy sposoby przyciągnięcia uwagi", "Zatrzymaj się i czekaj na wybór",
-                       "design-job", "Test przewijania", "ig-carousel-1", "Plugin niczego nie publikuje"):
-            self.assertIn(phrase, social)
-        for ref in ("social.md", "copy-pl.md"):
-            self.assertTrue((SKILLS / "graphic-designer" / "references" / ref).is_file(), ref)
 
     def test_final_answer_has_four_parts_and_off_brand_needs_consent(self):
         job = " ".join((SKILLS / "design-job" / "SKILL.md").read_text(encoding="utf-8").split())
