@@ -13,21 +13,28 @@ Dla kogoś, kto nie wie nic o pluginach.
 
 1. **Zainstaluj plugin, potem zawsze zacznij NOWĄ rozmowę.** Rozmowa założona przed instalacją
    albo przed aktualizacją nie widzi pluginu ani jego nowej wersji.
-2. **Otwórz folder, w którym leży `brand/`** (biblia marki: kolory, fonty, logo). Jeśli takiego
+2. **Skonfiguruj plugin (raz).** Po instalacji aplikacja może od razu zaproponować konfigurację.
+   Jeśli nie, napisz: „Skonfiguruj graphic-designer”. Asystent sprawdzi, co działa, wyjaśni,
+   dlaczego na Macu przeglądarka potrzebuje wyjątku od piaskownicy, i niczego nie zapisze bez
+   Twojego „tak”. Po zapisaniu reguł zamknij aplikację całkiem i otwórz ją ponownie. Co zapisuje
+   i jak to cofnąć: sekcja „Co robi konfiguracja i jak ją cofnąć” w
+   [docs/graphic-designer.md](../../docs/graphic-designer.md).
+3. **Otwórz folder, w którym leży `brand/`** (biblia marki: kolory, fonty, logo). Jeśli takiego
    folderu nie masz, otwórz dowolny: plugin zapyta wtedy o logo, kolory i fonty.
-3. **Napisz, co chcesz zrobić.** Plugin zwykle włącza się sam, gdy prosisz o grafikę. Żeby mieć
+4. **Napisz, co chcesz zrobić.** Plugin zwykle włącza się sam, gdy prosisz o grafikę. Żeby mieć
    pewność, wpisz `@` i wybierz `graphic-designer` przed swoją prośbą (w aplikacji Codex
    podpowiedź brzmi „Type @ to invoke the plugin or one of its bundled skills explicitly”).
    W wierszu poleceń `/plugins` pokazuje zainstalowane pluginy.
-4. **Wybierz model:** zalecany jest `gpt-6.1-sol` na poziomie Medium. W wierszu poleceń
+5. **Wybierz model:** zalecany jest `gpt-6.1-sol` na poziomie Medium. W wierszu poleceń
    zmienisz go przez `/model`, w aplikacji przez wybór modelu pod polem wiadomości.
-5. **Czego oczekiwać.** Agent powinien: zadać kilka pytań o zlecenie, pokazać trzy kierunki
+6. **Czego oczekiwać.** Agent powinien: zadać kilka pytań o zlecenie, pokazać trzy kierunki
    i **poczekać na Twój wybór**, dopracować wybrany etapami, złożyć grafikę, sprawdzić ją
    automatycznie i dać listę rzeczy do sprawdzenia przez Ciebie. Jeśli pominie krok (np. od razu
    pokaże „gotową” grafikę), napisz: **„Wróć do procedury pluginu graphic-designer: najpierw
    brief i kierunki.”**
-6. **Okno z prośbą o zgodę** (piaskownica Codexa, sieć, zapis w Twoim folderze) znaczy: zezwól
-   jednorazowo. Plugin prosi tylko wtedy, gdy bez tego nie złoży albo nie sprawdzi grafiki.
+7. **Okno z prośbą o zgodę** (piaskownica Codexa, sieć, zapis w Twoim folderze) znaczy: zezwól
+   jednorazowo. Plugin prosi tylko wtedy, gdy bez tego nie złoży albo nie sprawdzi grafiki. Po
+   konfiguracji z punktu 2 większość tych okien znika.
    Szczegóły: sekcja „Piaskownica Codexa” w [docs/graphic-designer.md](../../docs/graphic-designer.md).
 
 ## Wiedza projektanta
@@ -40,8 +47,15 @@ Krótkie pliki w `skills/graphic-designer/references/`: `brief.md`, `logo.md`, `
 
 `python3 plugins/graphic-designer/scripts/designer.py <polecenie>` (Windows: `py -3`).
 Polecenia: `version`, `library`, `new`, `set-brand`, `status`, `draft`, `choose`, `freeze`, `brand`,
-`brand-init`, `brand-log`, `render`, `check`, `share`, `finalize`, `adopt`, `env`, `update-check`.
-Pomoc: `designer.py <polecenie> --help`.
+`brand-init`, `brand-log`, `render`, `check`, `share`, `finalize`, `adopt`, `env`, `update-check`,
+`doctor`, `setup-launcher`, `setup-rules`. Pomoc: `designer.py <polecenie> --help`.
+
+Konfiguracja: `doctor` pokazuje, co działa i jaki jest następny krok (nic nie zmienia);
+`setup-launcher` instaluje stały skrypt startowy w `~/.graphic-designer/designer.py`
+(`GD_HOME`), który znajduje najnowszą wersję pluginu; `setup-rules` pokazuje, a z `--apply`
+dopisuje albo z `--remove` usuwa oznaczony blok reguł Codexa (`~/.codex/rules/default.rules`,
+`CODEX_HOME`). Reguły pozwalają uruchamiać poza piaskownicą, bez pytania, tylko `env`, `render`,
+`check`, `update-check` i `doctor` przez stały skrypt.
 
 Skrypt pilnuje procesu: `choose` zapisuje wybrany kierunek (`--direct` dla zlecenia bez rundy
 kierunków), `status` pokazuje etap i następny krok, a `check` zgłasza błąd `process`, gdy brief
