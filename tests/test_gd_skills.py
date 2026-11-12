@@ -134,17 +134,42 @@ class SkillsCase(unittest.TestCase):
             self.assertTrue(desc.startswith("Zaprojektuj plakat, post, relację"), f"{name}: {desc[:50]}")
 
     def test_intro_block_in_entry_skill(self):
-        entry = " ".join((SKILLS / "graphic-designer" / "SKILL.md").read_text(encoding="utf-8").split())
+        raw = (SKILLS / "graphic-designer" / "SKILL.md").read_text(encoding="utf-8")
+        entry = " ".join(raw.split())
         self.assertIn("Pierwsza odpowiedź w rozmowie o grafice", entry)
-        for part in ("Jak pracujemy:", "1) kilka pytań o zlecenie,",
-                     "2) trzy kierunki do wyboru (zatrzymam się i poczekam na Twoją decyzję),",
-                     "3) dopracowanie wybranego etapami,", "4) złożenie i automatyczna kontrola,",
-                     "5) gotowe pliki do Twojej akceptacji — niczego nie publikuję."):
+        for part in ("Jak pracujemy:", "kilka pytań o zlecenie,",
+                     "trzy kierunki do wyboru (zatrzymam się i poczekam na Twoją decyzję),",
+                     "dopracowanie wybranego etapami,", "złożenie i automatyczna kontrola,",
+                     "gotowe pliki do Twojej akceptacji — niczego nie publikuję."):
             self.assertIn(part, entry)
         self.assertIn("raz na rozmowę", entry)
-        block = (SKILLS / "graphic-designer" / "SKILL.md").read_text(encoding="utf-8")
-        block = block[block.index("Jak pracujemy:"):]
-        self.assertLessEqual(len(block[:block.index("```")].strip().splitlines()), 4)
+
+    def test_intro_block_is_a_real_markdown_list(self):
+        """Każda pozycja wprowadzenia w osobnej linii (błąd z testu 12.11.2026: pozycje się sklejały)."""
+        raw = (SKILLS / "graphic-designer" / "SKILL.md").read_text(encoding="utf-8")
+        start = raw.index("**Jak pracujemy:**")
+        block = raw[start:raw.index("```", start)].strip().splitlines()
+        self.assertEqual(block[0], "**Jak pracujemy:**")
+        self.assertEqual(block[1], "")
+        items = block[2:]
+        self.assertEqual(len(items), 5)
+        for n, line in enumerate(items, 1):
+            self.assertTrue(line.startswith(f"{n}. "), line)
+            self.assertEqual(len(re.findall(r"\d\)", line)), 0, line)
+
+    def test_formatting_rules_in_entry_skill(self):
+        entry = " ".join((SKILLS / "graphic-designer" / "SKILL.md").read_text(encoding="utf-8").split())
+        self.assertIn("## Jak formatujesz odpowiedzi", entry)
+        self.assertIn("w osobnej linii", entry)
+        self.assertIn("pustą linię", entry)
+
+    def test_final_answer_has_four_parts_and_off_brand_needs_consent(self):
+        job = " ".join((SKILLS / "design-job" / "SKILL.md").read_text(encoding="utf-8").split())
+        for part in ("**Plik:**", "**Kontrola automatyczna:**", "**Samoocena:**",
+                     "**Do sprawdzenia przez człowieka:**", "tylko link do pliku nie spełnia"):
+            self.assertIn(part, job)
+        self.assertIn("najpierw szukaj rozwiązania **w obrębie marki**", job)
+        self.assertIn("czekaj na „tak”", job)
 
     def test_failed_browser_test_without_sandbox_marker_is_neutral(self):
         entry = " ".join((SKILLS / "graphic-designer" / "SKILL.md").read_text(encoding="utf-8").split())

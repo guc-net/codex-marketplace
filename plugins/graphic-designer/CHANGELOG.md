@@ -3,6 +3,12 @@
 Najnowsza wersja na górze. Ten plik czyta plugin, kiedy mówi Ci o aktualizacji —
 pisz więc tak, żeby rozumiał to ktoś, kto nie programuje.
 
+## 0.2.1 — 2026-11-12
+
+- Naprawa po teście 12.11.2026: wprowadzenie „Jak pracujemy” pokazywało się jako dwa gęste akapity, bo pozycje były sklejone w jednej linii. Teraz to lista numerowana, a procedura wymaga takiego układu w każdej odpowiedzi (listy w osobnych liniach, pusta linia przed i po).
+- Odpowiedź z gotową grafiką ma zawsze cztery części: plik, wynik kontroli, samoocena, lista „do sprawdzenia przez człowieka” (wcześniej asystent potrafił podać tylko link do pliku).
+- Gdy styl „nie pasuje” osobie, asystent najpierw szuka rozwiązania w obrębie marki, a użycie fontu albo koloru spoza biblii zgłasza wprost i czeka na „tak” (kontrola automatyczna tego nie wyłapuje).
+
 ## 0.2.0 — 2026-11-12
 
 - Konfiguracja na początek: nowa procedura „setup” prowadzi krok po kroku (aplikacja Codex może ją zaproponować tuż po instalacji; inaczej napisz „Skonfiguruj graphic-designer”). Sprawdza, co działa, i mówi, co jest do zrobienia.

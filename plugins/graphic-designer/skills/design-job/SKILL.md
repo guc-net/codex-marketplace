@@ -158,8 +158,17 @@ Zapisz wersję przez `draft` z krótkim opisem. Stały blok stylu wklejaj dosło
 5. Samoocena według rubryki w `../graphic-designer/references/critique.md` (14 punktów, przy każdym: spełnia /
    nie spełnia i jedno zdanie dowodu). Nie pomijaj jej. Sprawdź też `../graphic-designer/references/generic-ai-tells.md`. Bez biblii
    marki pomiń punkty marki i powiedz o tym.
-6. Dopiero wtedy pokaż złożoną grafikę osobie i wypisz listę „do sprawdzenia przez człowieka”
-   (punkt 4 w rozdziale 6).
+6. Dopiero wtedy pokaż złożoną grafikę osobie. **Odpowiedź z gotową grafiką ma zawsze cztery
+   części, każdą jako osobną krótką listę:**
+
+   - **Plik:** pełna ścieżka i wymiary.
+   - **Kontrola automatyczna:** wynik `check` (np. „OK: 12/12”) i, co ważne, co pominięto.
+   - **Samoocena:** punkty rubryki w skrócie; niezaliczone wymień wprost.
+   - **Do sprawdzenia przez człowieka:** lista z rozdziału 6, punkt 4 (teksty słowo po słowie,
+     data i dzień tygodnia, godzina i miejsce, adres, do którego prowadzi kod QR, zgody osób
+     na zdjęciach, logo partnerów) oraz każdy wyjątek od biblii marki.
+
+   Odpowiedź zawierająca tylko link do pliku nie spełnia tej procedury.
 
 ## 6. Akceptacja i pakiet
 
@@ -185,4 +194,9 @@ Gdy osoba mówi, że grafika jest gotowa:
   wejdzie jako warstwa.
 - Logo i zdjęcia osób nigdy z generatora. Tylko oryginalny plik.
 - Kolory i fonty spoza biblii marki — tylko za zgodą osoby; zmiana biblii to procedura **brand-kit**.
+  Gdy osoba mówi, że styl jest „za ciężki” albo „nie ten”, najpierw szukaj rozwiązania **w obrębie
+  marki** (inne proporcje, więcej światła, mniejszy nagłówek, inna waga, inny kadr). Jeśli to nie
+  wystarcza i chcesz użyć innego kroju albo koloru, powiedz to wprost („Biblia ma tylko Anton; proponuję
+  dla tego posta krój z szeryfami — zgoda?”) i czekaj na „tak”. Zapisz wyjątek w `brief.md`.
+  `check` tego nie wyłapie: fonty spoza biblii pomija i tylko o tym wspomina.
 - Wydruk (A4, A3): spad i PDF — `../graphic-designer/references/print.md`.
