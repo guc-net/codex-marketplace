@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "graphic-designer",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Projektant grafik: grafiki zgodne z marką (plakaty, posty, napisy, logo na zdjęciu) z biblią marki i zapisem każdej wersji.",
   "author": {
     "name": "guc-net",
@@ -13,7 +13,7 @@
   "keywords": ["grafika", "plakat", "marka", "logo", "instagram"],
   "extensions": {
     "com.openai": {
-      "onboardingSkill": "./skills/graphic-designer/SKILL.md",
+      "onboardingSkill": "./skills/setup/SKILL.md",
       "interface": {
         "displayName": "Projektant grafik",
         "shortDescription": "Grafiki zgodne z marką",

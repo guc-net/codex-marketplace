@@ -5,7 +5,7 @@ description: Biblia marki — kolory, paleta, fonty, logo, przykłady „tak” 
 
 # Biblia marki — zakładanie i zmiany
 
-Mów po polsku, krótko, bez żargonu. DESIGNER to ścieżka skryptu (jak w skillu `graphic-designer`).
+Mów po polsku, krótko, bez żargonu. DESIGNER to ścieżka skryptu (jak w procedurze `graphic-designer`).
 Przykłady używają zmyślonej marki „Kiwi Studio”.
 
 Biblia marki to folder `brand/`: `brand.md` (kolory, fonty, logo, zakazy, opis marki), `logo/`,

@@ -4,10 +4,12 @@ from __future__ import annotations
 import contextlib
 import io
 import json
+import os
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 REPO = Path(__file__).resolve().parent.parent
 PLUGIN = REPO / "plugins" / "graphic-designer"
@@ -29,6 +31,15 @@ class TestUpdate(unittest.TestCase):
         self._tmp = tempfile.TemporaryDirectory()
         self.tmp = Path(self._tmp.name)
         self.addCleanup(self._tmp.cleanup)
+        # GD_HOME i GD_UPDATE_SOURCE to jedyne przełączniki; drugi jest tylko do testów
+        patcher = mock.patch.dict(os.environ, {"GD_HOME": str(self.tmp / "home")})
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        os.environ.pop("GD_UPDATE_SOURCE", None)
+
+    @property
+    def cache(self):
+        return self.tmp / "home" / "update.json"
 
     def source(self, version):
         src = self.tmp / "source"
@@ -39,8 +50,12 @@ class TestUpdate(unittest.TestCase):
             f"## {update.installed_version()} — 2026-11-11\n\n- Pierwsza wersja.\n", encoding="utf-8")
         return src.as_uri() + "/"
 
+    def point_at(self, source):
+        os.environ["GD_UPDATE_SOURCE"] = source
+
     def test_update_newer(self):
-        code, out = run("update-check", "--source", self.source("9.1.0"), "--cache", self.tmp / "c.json")
+        self.point_at(self.source("9.1.0"))
+        code, out = run("update-check")
         self.assertEqual(code, 0)
         self.assertIn("NOWA WERSJA 9.1.0", out)
         self.assertIn("Nowe układy.", out)
@@ -49,38 +64,65 @@ class TestUpdate(unittest.TestCase):
         self.assertIn("codex plugin marketplace upgrade guc-net", out)
 
     def test_update_current(self):
-        code, out = run("update-check", "--source", self.source(update.installed_version()),
-                        "--cache", self.tmp / "c.json")
+        self.point_at(self.source(update.installed_version()))
+        code, out = run("update-check")
         self.assertEqual(code, 0)
         self.assertTrue(out.startswith("AKTUALNA"), out)
 
     def test_update_cached_today(self):
-        cache = self.tmp / "c.json"
-        run("update-check", "--source", self.source("9.1.0"), "--cache", cache)
-        code, out = run("update-check", "--source", "file:///nie/ma/", "--cache", cache)
+        self.point_at(self.source("9.1.0"))
+        run("update-check")
+        self.point_at("file:///nie/ma/")
+        code, out = run("update-check")
         self.assertEqual(code, 0)
         self.assertIn("NOWA WERSJA 9.1.0", out)
         self.assertIn("Sprawdzono już dziś", out)
-        code, out = run("update-check", "--source", "file:///nie/ma/", "--cache", cache, "--force")
+        code, out = run("update-check", "--force")
         self.assertEqual(code, 2)
 
     def test_update_offline(self):
-        code, out = run("update-check", "--source", "file:///nie/ma/", "--cache", self.tmp / "c.json")
+        self.point_at("file:///nie/ma/")
+        code, out = run("update-check")
         self.assertEqual(code, 2)
         self.assertTrue(out.startswith("NIE SPRAWDZONO"), out)
-        self.assertFalse((self.tmp / "c.json").exists())
+        self.assertFalse(self.cache.exists())
 
     def test_default_cache_respects_gd_home(self):
-        import os
-        old = os.environ.get("GD_HOME")
-        os.environ["GD_HOME"] = str(self.tmp / "home")
-        try:
-            self.assertEqual(update.default_cache(), self.tmp / "home" / "update.json")
-        finally:
-            if old is None:
-                os.environ.pop("GD_HOME")
-            else:
-                os.environ["GD_HOME"] = old
+        self.assertEqual(update.default_cache(), self.tmp / "home" / "update.json")
+
+    # Reguła Codexa dopasowuje tylko początek polecenia, więc polecenie nie może przyjmować
+    # argumentów, którymi przekieruje się adres albo plik (przegląd 0.2.0, C2).
+    def test_command_takes_no_source_or_cache_arguments(self):
+        for flag in ("--source", "--cache"):
+            with self.assertRaises(SystemExit) as cm:
+                run("update-check", flag, "cokolwiek")
+            self.assertEqual(cm.exception.code, 2, flag)
+        ns = designer.parser().parse_args(["update-check", "--force"])
+        self.assertEqual(set(vars(ns)) - {"command", "func"}, {"force"})
+
+    def test_cannot_overwrite_an_arbitrary_file(self):
+        precious = self.tmp / "cenny.txt"
+        precious.write_text("nie ruszać", encoding="utf-8")
+        with self.assertRaises(SystemExit):
+            run("update-check", "--source", self.source("9.1.0"), "--cache", precious)
+        self.assertEqual(precious.read_text(encoding="utf-8"), "nie ruszać")
+
+    def test_cache_is_always_in_gd_home(self):
+        self.point_at(self.source("9.1.0"))
+        run("update-check")
+        self.assertTrue(self.cache.is_file())
+        self.assertEqual([p.name for p in (self.tmp / "home").iterdir()], ["update.json"])
+
+    def test_official_address_is_hardcoded(self):
+        self.assertEqual(update.source_url(), update.SOURCE_URL)
+        self.assertTrue(update.SOURCE_URL.startswith(
+            "https://raw.githubusercontent.com/guc-net/codex-marketplace/"))
+
+    def test_source_variable_is_only_for_tests_and_documented_as_such(self):
+        self.point_at("file:///tests-only/")
+        self.assertEqual(update.source_url(), "file:///tests-only/")
+        text = (PLUGIN / "scripts" / "gd" / "update.py").read_text(encoding="utf-8")
+        self.assertIn("tylko do testów", text)
 
 
 class TestFormatsDoc(unittest.TestCase):

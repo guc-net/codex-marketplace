@@ -1,16 +1,53 @@
 ---
 name: design-job
-description: Plakat, post, relacja, okładka wydarzenia, logo na zdjęciu, napis, grafika na Instagram albo do druku (A4, A3). Używaj przy każdej prośbie o zrobienie lub poprawienie grafiki — prowadzi od zlecenia przez kierunki i etapy do sprawdzonych plików ostatecznych.
+description: Zaprojektuj plakat, post, relację, okładkę wydarzenia, logo na zdjęciu, napis, grafikę na Instagram albo do druku (A4, A3). Używaj przy każdej prośbie o zrobienie lub poprawienie grafiki — prowadzi od zlecenia przez kierunki i etapy do sprawdzonych plików ostatecznych.
 ---
 
 # Zlecenie graficzne — od pomysłu do gotowych plików
 
 Mów po polsku, krótko, bez żargonu. Polecenia uruchamiasz sam, DESIGNER to ścieżka skryptu
-(jak w skillu `graphic-designer`: `python3 DESIGNER …`, Windows `py -3 DESIGNER …`).
+(jak w procedurze `graphic-designer`: `python3 DESIGNER …`, Windows `py -3 DESIGNER …`).
 Przykłady poniżej używają zmyślonej marki „Kiwi Studio”.
 
 Człowiek ocenia i akceptuje; ty proponujesz. Niczego nie publikujesz w mediach
 społecznościowych — plugin tego nie robi. Do repozytorium trafiają tylko grafiki ostateczne.
+
+## Obowiązkowa kolejność
+
+Zanim zaczniesz, przejdź tę listę po kolei. Nic nie pomijasz po cichu.
+
+1. **Brief** — pytania i `brief.md` (krok 1).
+2. **Kierunki + STOP** — trzy różne kierunki zapisane przez `draft --direction` i czekanie
+   na wybór (krok 2).
+3. **`choose`** — zaraz po wyborze osoby: `DESIGNER choose --job <slug> --direction <litera>`;
+   dla zlecenia bez rundy kierunków `DESIGNER choose --job <slug> --direct`. Bez tego `check`
+   nie przejdzie.
+4. **Etapy z `draft` i `freeze`** — każdy obraz z generatora przechodzi przez `draft`,
+   a po akceptacji jest zamrożony przez `freeze` (krok 3).
+5. **`render`** — składanie plików (krok 5).
+6. **`check`** — musi dać `OK` (krok 5).
+7. **Samoocena** według rubryki z `../graphic-designer/references/critique.md`.
+8. **Lista do sprawdzenia przez człowieka** — po pokazie złożonej grafiki (krok 6, punkt 4).
+9. **Dopiero potem pokaz** osobie jako gotowa praca.
+
+Skrypt pilnuje tej kolejności: `status` pokazuje etap i następny krok, a `check` zgłasza
+błąd `process`, gdy brief jest pusty albo nie zapisano wyboru kierunku (a `finalize` bez
+czystego `check` nie zamknie pakietu).
+
+Kierunki pomijasz tylko w dwóch przypadkach: osoba opisała dokładnie gotowy wygląd, albo
+to zwykłe nałożenie (logo na zdjęcie). Wtedy od razu `choose --direct`. Prośba, która podaje tylko temat, format i datę
+(np. „post na warsztaty ceramiki w sobotę”), **nie** jest takim opisem: najpierw zadaj 2–4
+pytań do briefu (cel i odbiorca, nastrój, elementy obowiązkowe, teksty dosłownie), potem
+zaproponuj trzy kierunki i zatrzymaj się.
+
+Każdy obraz z generatora użyty w kompozycji ma przejść przez `draft` i po akceptacji zostać
+zamrożony przez `freeze`; nie kopiuj go do `layers/` ręcznie (wtedy `check` zgłosi, że
+warstwa użyta w kompozycji nie jest zamrożona). Osoba nie zobaczy „finału” bez `check` z wynikiem `OK`. Jeśli `render` albo
+`check` nie działa (np. przeglądarka nie startuje w piaskownicy: wynik z `SANDBOX?:`),
+poproś o jednorazową zgodę na uruchomienie poza piaskownicą; nie składaj grafiki innym
+narzędziem. Przy odmowie zgody nie ma pliku ostatecznego: pokazujesz tylko kierunki i szkice
+i mówisz wprost, że bez zgody nie złożysz ani nie sprawdzisz grafiki. Po pokazie złożonej
+grafiki wypisz listę „do sprawdzenia przez człowieka”.
 
 ## Kto co robi: generator a składanie
 
@@ -62,9 +99,11 @@ Kierunek różniący się od innych tylko kolorem odpada. Każdy ma:
 Każdy podgląd zapisz: `DESIGNER draft --job <slug> --file <plik> --direction A --note "Wiosenna
 gęstwina: ciemne tło, zielony napis"` (polecenie generatora dodaj w `--prompt`).
 
-Potem **zatrzymaj się i czekaj na wybór**. Liczbę kierunków osoba może zmienić; przy więcej niż
+Potem **zatrzymaj się i czekaj na wybór**. Gdy osoba wybierze, zapisz to od razu:
+`DESIGNER choose --job <slug> --direction A`. Liczbę kierunków osoba może zmienić; przy więcej niż
 trzech powiedz, że każdy obraz zużywa limit. Zlecenie z jasno opisanym efektem („nałóż logo na
-zdjęcie”) pomija ten krok i ma od razu jeden etap: złożenie.
+zdjęcie”) pomija ten krok: zapisz `DESIGNER choose --job <slug> --direct` i przejdź od razu do jednego
+etapu, czyli złożenia.
 
 ## 3. Etapy
 
@@ -117,9 +156,10 @@ Zapisz wersję przez `draft` z krótkim opisem. Stały blok stylu wklejaj dosło
    bezpieczne. `OK` (kod 0) → dalej. `PROBLEMS: n` (kod 3) → popraw albo powiedz wprost, czego nie
    da się naprawić. Brakujący znak w foncie (np. „ą”) to błąd do naprawienia, nie do pominięcia.
 5. Samoocena według rubryki w `../graphic-designer/references/critique.md` (14 punktów, przy każdym: spełnia /
-   nie spełnia i jedno zdanie dowodu). Sprawdź też `../graphic-designer/references/generic-ai-tells.md`. Bez biblii
+   nie spełnia i jedno zdanie dowodu). Nie pomijaj jej. Sprawdź też `../graphic-designer/references/generic-ai-tells.md`. Bez biblii
    marki pomiń punkty marki i powiedz o tym.
-6. Dopiero wtedy pokaż pracę osobie.
+6. Dopiero wtedy pokaż złożoną grafikę osobie i wypisz listę „do sprawdzenia przez człowieka”
+   (punkt 4 w rozdziale 6).
 
 ## 6. Akceptacja i pakiet
 
@@ -144,5 +184,5 @@ Gdy osoba mówi, że grafika jest gotowa:
   wcześniej (np. aplikacją Zdjęcia na Macu albo iPhonie) jako plik z przezroczystym tłem;
   wejdzie jako warstwa.
 - Logo i zdjęcia osób nigdy z generatora. Tylko oryginalny plik.
-- Kolory i fonty spoza biblii marki — tylko za zgodą osoby; zmiana biblii to skill **brand-kit**.
+- Kolory i fonty spoza biblii marki — tylko za zgodą osoby; zmiana biblii to procedura **brand-kit**.
 - Wydruk (A4, A3): spad i PDF — `../graphic-designer/references/print.md`.

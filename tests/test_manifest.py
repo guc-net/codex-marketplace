@@ -60,6 +60,12 @@ class TestMarketplace(unittest.TestCase):
         for s in filter(None, sciezki):
             self.assertTrue(s.startswith("./"), s)
             self.assertTrue((katalog / s).is_file(), s)
+        onboarding = openai.get("onboardingSkill")
+        if onboarding:
+            # procedura uruchamiana po instalacji: musi być jedną z procedur pluginu
+            sciezka = re.match(r"^\./skills/([\w-]+)/SKILL\.md$", onboarding)
+            self.assertTrue(sciezka, f"onboardingSkill musi wskazywać ./skills/<nazwa>/SKILL.md: {onboarding}")
+            self.assertEqual(frontmatter(katalog / onboarding).get("name"), sciezka.group(1))
 
         skille = sorted((katalog / "skills").glob("*/SKILL.md"))
         self.assertTrue(skille)

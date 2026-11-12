@@ -26,8 +26,11 @@ def _job_line(job: Path) -> str:
         d = jobs.load(job)
     except GdError:
         return f"- {job.parent.name}/{job.name}: PROBLEM: nie mogę odczytać job.json"
-    return (f"- {job.parent.name}/{job.name}: {d.get('title', '?')} | etap: {d.get('stage', '?')} | "
-            f"warstwy: {len(jobs.layer_metas(job))} | formaty: {', '.join(d.get('formats', []))}")
+    stage = d.get("stage", "?")
+    step = jobs.NEXT_STEP.get(stage)
+    return (f"- {job.parent.name}/{job.name}: {d.get('title', '?')} | etap: {stage}"
+            + (f" → {step}" if step else "")
+            + f" | warstwy: {len(jobs.layer_metas(job))} | formaty: {', '.join(d.get('formats', []))}")
 
 
 def cmd_library(args) -> int:
@@ -121,6 +124,17 @@ def cmd_draft(args) -> int:
     return 0
 
 
+def cmd_choose(args) -> int:
+    job = jobs.job_dir(args.job)
+    value = jobs.choose(job, args.direction, args.direct)
+    stage = jobs.load(job).get("stage", "stages")
+    if value == "direct":
+        info(f"OK: zlecenie {job.name} bez rundy kierunków (direct); etap: {stage}")
+    else:
+        info(f"OK: wybrany kierunek {value} w zleceniu {job.name}; etap: {stage}")
+    return 0
+
+
 def cmd_freeze(args) -> int:
     job = jobs.job_dir(args.job)
     inputs = [i.strip() for i in (args.inputs or "").split(",") if i.strip()]
@@ -186,6 +200,8 @@ def cmd_render(args) -> int:
     from gd import render
     job = jobs.job_dir(args.job)
     files = render.render_job(job, args.format, args.preview)
+    if not args.preview:
+        jobs.advance(job, "composition")
     info("RENDERED: " + ", ".join(str(f) for f in files))
     return 0
 
@@ -234,6 +250,7 @@ def cmd_env(args) -> int:
     from gd import browser
     try:
         info(f"BROWSER: {browser.find()}")
+        info(browser.smoke_test())
     except GdError as e:
         info("NO BROWSER")
         info(str(e).replace("NO BROWSER: ", "", 1))
@@ -246,10 +263,87 @@ def cmd_env(args) -> int:
 
 def cmd_update_check(args) -> int:
     from gd import update
-    cache = Path(args.cache).expanduser() if args.cache else update.default_cache()
-    text = update.check(cache, args.source or update.SOURCE_URL, args.force)
+    text = update.check(update.default_cache(), update.source_url(), args.force)
     info(text)
     return 2 if text.startswith("NIE SPRAWDZONO") else 0
+
+
+def cmd_setup_launcher(args) -> int:
+    from gd import onboard
+    status, legacy = onboard.setup_launcher()
+    path = onboard.launcher_path()
+    info(f"LAUNCHER: {path}")
+    info({"installed": "OK: zainstalowano stały skrypt startowy.",
+          "updated": "OK: zaktualizowano stały skrypt startowy.",
+          "current": "OK: stały skrypt startowy jest już aktualny."}[status])
+    old = onboard.legacy_launcher_path()
+    if legacy == "removed":
+        info(f"OK: usunięto dawny plik startowy {old} (leżał w miejscu, którego Codex nie chroni).")
+    elif legacy == "foreign":
+        info(f"UWAGA: {old} nie wygląda na plik pluginu, więc go nie ruszam.")
+    if legacy != "absent" and onboard.rules_reference(old):
+        info(f"UWAGA: reguły Codexa nadal ufają dawnemu plikowi {old}. Przepisz je na nową ścieżkę: "
+             f"python3 {path} setup-rules --apply")
+    info(f"Używaj go tak: python3 {path} <polecenie>")
+    return 0
+
+
+def _rules_warning() -> None:
+    from gd import onboard
+    info("UWAGA: te polecenia będą się uruchamiać poza piaskownicą Codexa, bez pytania o zgodę: "
+         + ", ".join(onboard.ALLOWED_SUBCOMMANDS) + ". Reguła dopasowuje tylko początek polecenia, "
+         "więc argumenty (np. --job <folder>) nie są ograniczone. Chrome składa wtedy stronę ze "
+         "zlecenia bez piaskownicy; plugin ogranicza ją zasadą CSP (bez skryptów, sieci i ramek), "
+         "ale strona nadal może pokazać na obrazie dowolny plik graficzny z dysku. Otwieraj tylko "
+         "zlecenia, którym ufasz.")
+
+
+def cmd_setup_rules(args) -> int:
+    from gd import onboard
+    path = onboard.rules_file()
+    if args.remove:
+        status = onboard.remove_rules()
+        if status == "absent":
+            info(f"OK: w {path} nie ma bloku graphic-designer; nic nie zmieniam.")
+            return 0
+        info(f"OK: usunięto blok graphic-designer z {path}; reszta pliku bez zmian.")
+        info("Uruchom Codex ponownie, żeby przestał stosować te reguły (czyta je przy starcie).")
+        return 0
+    if args.apply:
+        status = onboard.apply_rules()
+        if status == "current":
+            info(f"OK: blok reguł w {path} jest już aktualny; nic nie zmieniam.")
+            return 0
+        info({"created": f"OK: utworzono {path} z blokiem reguł.",
+              "added": f"OK: dopisano blok reguł na końcu {path}; reszta pliku bez zmian.",
+              "updated": f"OK: zaktualizowano blok reguł w {path}: zastąpiono całą treść między znacznikami "
+                         "nową (ręczne zmiany w środku bloku znikają), reszta pliku bez zmian."}[status])
+        if onboard.backup_path().is_file():
+            info(f"Kopia pliku sprzed pierwszej zmiany: {onboard.backup_path()}")
+        _rules_warning()
+        info("Uruchom Codex ponownie, żeby wczytał reguły (czyta je przy starcie). "
+             "Sprawdzisz je poleceniem doctor. Cofnięcie: setup-rules --remove.")
+        return 0
+    launcher = onboard.launcher_path()
+    info(f"RULES: {path} (nic nie zapisuję; to tylko propozycja)")
+    if not launcher.is_file():
+        info(f"UWAGA: nie ma jeszcze stałego skryptu startowego {launcher}. Najpierw: "
+             f"python3 {onboard.plugin_script()} setup-launcher")
+    info("Na końcu tego pliku pojawi się taki blok (reszty pliku nie ruszam; przed zmianą powstanie "
+         f"jednorazowa kopia {onboard.backup_path().name}):")
+    info()
+    info(onboard.rules_block(launcher))
+    _rules_warning()
+    info(f"Zapis po Twojej zgodzie: {onboard.current_command()} setup-rules --apply. "
+         "Cofnięcie: setup-rules --remove. Po zapisie uruchom Codex ponownie, bo czyta reguły przy starcie.")
+    return 0
+
+
+def cmd_doctor(args) -> int:
+    from gd import onboard
+    for line in onboard.doctor_lines():
+        info(line)
+    return 0
 
 
 def parser() -> argparse.ArgumentParser:
@@ -280,6 +374,13 @@ def parser() -> argparse.ArgumentParser:
     s.add_argument("--note", required=True)
     s.add_argument("--prompt")
     s.set_defaults(func=cmd_draft)
+    s = sub.add_parser("choose", help="zapisz wybrany kierunek (albo zlecenie bez rundy kierunków)")
+    s.add_argument("--job", required=True)
+    g = s.add_mutually_exclusive_group(required=True)
+    g.add_argument("--direction", help="litera kierunku zapisanego wcześniej przez draft --direction")
+    g.add_argument("--direct", action="store_true",
+                   help="zlecenie bez rundy kierunków (samo nałożenie albo dokładnie opisany wygląd)")
+    s.set_defaults(func=cmd_choose)
     s = sub.add_parser("freeze", help="zamroź zatwierdzoną warstwę (kopia, z SHA-256)")
     s.add_argument("--job", required=True)
     s.add_argument("--name", required=True)
@@ -331,9 +432,16 @@ def parser() -> argparse.ArgumentParser:
     s.set_defaults(func=cmd_env)
     s = sub.add_parser("update-check", help="sprawdź, czy jest nowsza wersja pluginu (raz dziennie)")
     s.add_argument("--force", action="store_true", help="pomiń wynik z dzisiejszego sprawdzenia")
-    s.add_argument("--source", help="adres z plugin.json i CHANGELOG.md (domyślnie GitHub)")
-    s.add_argument("--cache", help="plik z wynikiem (domyślnie ~/.graphic-designer/update.json)")
     s.set_defaults(func=cmd_update_check)
+    s = sub.add_parser("setup-launcher", help="zainstaluj stały skrypt startowy w folderze Codexa (stała ścieżka dla reguł)")
+    s.set_defaults(func=cmd_setup_launcher)
+    s = sub.add_parser("setup-rules", help="pokaż (domyślnie), dopisz albo usuń reguły Codexa pluginu")
+    g = s.add_mutually_exclusive_group()
+    g.add_argument("--apply", action="store_true", help="dopisz blok reguł na końcu pliku reguł Codexa")
+    g.add_argument("--remove", action="store_true", help="usuń blok reguł pluginu (reszty pliku nie rusza)")
+    s.set_defaults(func=cmd_setup_rules)
+    s = sub.add_parser("doctor", help="sprawdź konfigurację: co działa, co jest do zrobienia i jaki następny krok")
+    s.set_defaults(func=cmd_doctor)
     return p
 
 

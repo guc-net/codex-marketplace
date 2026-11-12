@@ -27,10 +27,14 @@ def info(text: str = "") -> None:
     print(text)
 
 
-def settings_path() -> Path:
+def gd_home() -> Path:
+    """Folder ustawień pluginu: GD_HOME albo ~/.graphic-designer."""
     home = os.environ.get("GD_HOME")
-    base = Path(home).expanduser() if home else Path.home() / ".graphic-designer"
-    return base / "settings.json"
+    return Path(home).expanduser() if home else Path.home() / ".graphic-designer"
+
+
+def settings_path() -> Path:
+    return gd_home() / "settings.json"
 
 
 def read_settings() -> dict:

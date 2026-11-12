@@ -12,6 +12,7 @@ from .common import GdError
 FORMAT = "graphic-designer-brand/1"
 REQUIRED_COLORS = ("primary", "background", "text")
 LOGO_ON = ("dark", "light", "any")
+FONT_EXTENSIONS = (".ttf", ".otf", ".woff", ".woff2")
 
 
 @dataclass
@@ -126,6 +127,34 @@ def load(brand_dir: Path) -> Brand:
     return b
 
 
+def inside(brand_dir: Path, path: Path) -> bool:
+    """Czy `path` (po rozwiązaniu dowiązań i `..`) leży w folderze marki."""
+    try:
+        Path(path).resolve().relative_to(Path(brand_dir).resolve())
+        return True
+    except (ValueError, OSError, RuntimeError):
+        return False
+
+
+def path_problems(b: Brand) -> List[str]:
+    """Pliki fontów i logo spoza folderu marki oraz fonty o złym rozszerzeniu.
+
+    Plik poza folderem marki (ścieżka bezwzględna, `..`, dowiązanie) trafiłby do strony jako
+    dane, więc kompozycja mogłaby go odczytać. To blokuje też składanie."""
+    out: List[str] = []
+    for name, f in b.fonts.items():
+        if f.file is None:
+            continue
+        if not inside(b.dir, f.file):
+            out.append(f"font.{name}.file: „{f.file_raw}” leży poza folderem marki (fonty trzymaj w brand/fonts/)")
+        elif f.file.suffix.lower() not in FONT_EXTENSIONS:
+            out.append(f"font.{name}.file: oczekiwano .ttf, .otf, .woff albo .woff2, jest „{f.file_raw}”")
+    for name, lg in b.logos.items():
+        if lg.file is not None and not inside(b.dir, lg.file):
+            out.append(f"logo.{name}.file: „{lg.file_raw}” leży poza folderem marki (logo trzymaj w brand/logo/)")
+    return out
+
+
 def validate(b: Brand) -> Tuple[List[str], List[str]]:
     """Zwraca (błędy, ostrzeżenia) — wszystkie naraz."""
     errors: List[str] = []
@@ -153,19 +182,20 @@ def validate(b: Brand) -> Tuple[List[str], List[str]]:
             else:
                 errors.append(f"font.{name}.file: brak pliku (a font nie jest oznaczony jako pending)")
             continue
-        if f.file.suffix.lower() not in (".ttf", ".otf"):
-            errors.append(f"font.{name}.file: oczekiwano .ttf albo .otf, jest „{f.file_raw}”")
-        elif not f.file.is_file():
+        if not inside(b.dir, f.file) or f.file.suffix.lower() not in FONT_EXTENSIONS:
+            continue  # zgłasza to path_problems poniżej
+        if not f.file.is_file():
             errors.append(f"font.{name}.file: nie ma pliku {f.file_raw}")
     if not b.logos:
         errors.append("brak logo: potrzebny co najmniej jeden wariant (logo.<nazwa>.file)")
     for name, lg in b.logos.items():
         if lg.file is None:
             errors.append(f"logo.{name}.file: brak ścieżki do pliku")
-        elif not lg.file.is_file():
+        elif inside(b.dir, lg.file) and not lg.file.is_file():
             errors.append(f"logo.{name}.file: nie ma pliku {lg.file_raw}")
         if lg.on not in LOGO_ON:
             errors.append(f"logo.{name}.on: oczekiwano dark, light albo any, jest „{lg.on}”")
+    errors.extend(path_problems(b))
     for i, (fg, bg, _why) in enumerate(b.forbidden, 1):
         if not bg:
             errors.append(f"forbidden.{i}: oczekiwano „rola on rola”, jest „{fg}”")

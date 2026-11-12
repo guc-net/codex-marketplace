@@ -210,9 +210,26 @@ def _check_format(job: Path, fid: str, fmt: dict, brand: Optional[Brand]) -> Lis
     text = re.sub(r"<!--.*?-->", "", comp.read_text(encoding="utf-8"), flags=re.S)
     for name in sorted(set(re.findall(r"\.\./layers/([^\"')\s?#]+)", text))):
         if not frozen.get(name):
-            problems.append(f"Warstwa „{name}” użyta w kompozycji nie jest zamrożona")
+            problems.append(f"Warstwa „{name}” użyta w kompozycji nie jest zamrożona; "
+                            "zamroź ją poleceniem freeze (draft, potem freeze po akceptacji)")
     res += _group(fid, "layers", problems, "Warstwy zamrożone i niezmienione")
     return res
+
+
+def process_findings(job: Path, data: dict) -> List[Finding]:
+    """Bramki procesu na poziomie zlecenia: brief i wybrany kierunek."""
+    out = []
+    ok = jobs.brief_filled(job)
+    out.append(Finding("-", "process", ok,
+                       "Brief jest wypełniony" if ok else
+                       "brief.md jest pusty albo zostawiony jako szablon; dopytaj o cel, odbiorcę, "
+                       "nastrój i teksty dosłowne, zapisz je w brief.md"))
+    ok = bool(data.get("chosen"))
+    out.append(Finding("-", "process", ok,
+                       f"Wybrany kierunek: {data.get('chosen')}" if ok else
+                       "Nie zapisano wyboru kierunku; po decyzji osoby uruchom choose --direction <litera>, "
+                       "a dla zlecenia bez rundy kierunków choose --direct"))
+    return out
 
 
 def run(job_dir: Path) -> List[Finding]:
@@ -224,7 +241,7 @@ def run(job_dir: Path) -> List[Finding]:
         if i not in known:
             raise GdError(f"nieznany format {i}. Znane formaty: {', '.join(known)}")
     brand = render._brand_of(job)
-    out: List[Finding] = []
+    out: List[Finding] = process_findings(job, data)
     for i in ids:
         out += _check_format(job, i, known[i], brand)
     return out

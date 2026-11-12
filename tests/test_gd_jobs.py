@@ -70,6 +70,159 @@ class Env(unittest.TestCase):
         return job_of(out)
 
 
+REAL_BRIEF = """# Brief zlecenia
+
+## Cel
+Zachęcić do zapisu na warsztaty ceramiki w sobotę wieczorem.
+
+## Odbiorca
+Mieszkańcy dzielnicy, Instagram, post 4:5.
+
+## Teksty dosłowne
+- Nagłówek: Wieczór z gliną
+- Data i godzina: sobota, 18.00
+"""
+
+
+class TestProcess(Env):
+    """Bramki procesu: kierunki, `choose`, etapy, status, `check`."""
+
+    def data(self, job):
+        return json.loads((job / "job.json").read_text(encoding="utf-8"))
+
+    def draft(self, job, direction="A"):
+        code, out = run("draft", "--job", job, "--file", self.png, "--direction", direction,
+                        "--note", "szkic")
+        self.assertEqual(code, 0, out)
+
+    def test_draft_records_direction_and_moves_stage(self):
+        job = self.new_job()
+        self.assertEqual(self.data(job)["stage"], "brief")
+        self.draft(job, "A")
+        d = self.data(job)
+        self.assertEqual(d["stage"], "directions")
+        self.assertIn("A", d["directions"])
+        self.draft(job, "B")
+        self.draft(job, "A")
+        d = self.data(job)
+        self.assertEqual(sorted(d["directions"]), ["A", "B"])
+        self.assertEqual(d["stage"], "directions")
+        self.assertIsNone(d["chosen"])
+
+    def test_choose_direction_ok(self):
+        job = self.new_job()
+        self.draft(job, "A")
+        self.draft(job, "B")
+        code, out = run("choose", "--job", job.name, "--direction", "B")
+        self.assertEqual(code, 0, out)
+        self.assertTrue(out.startswith("OK:"), out)
+        d = self.data(job)
+        self.assertEqual((d["chosen"], d["stage"]), ("B", "stages"))
+
+    def test_choose_direction_is_case_insensitive(self):
+        job = self.new_job()
+        self.draft(job, "A")
+        self.assertEqual(run("choose", "--job", job, "--direction", "a")[0], 0)
+        self.assertEqual(self.data(job)["chosen"], "A")
+
+    def test_choose_unknown_direction(self):
+        job = self.new_job()
+        self.draft(job, "A")
+        code, out = run("choose", "--job", job, "--direction", "C")
+        self.assertEqual(code, 1, out)
+        self.assertIn("PROBLEM", out)
+        self.assertIn("C", out)
+        self.assertIn("draft --direction", out)
+        self.assertNotIn("Traceback", out)
+        d = self.data(job)
+        self.assertEqual((d["chosen"], d["stage"]), (None, "directions"))
+
+    def test_choose_direction_without_any_draft(self):
+        job = self.new_job()
+        code, out = run("choose", "--job", job, "--direction", "A")
+        self.assertEqual(code, 1, out)
+        self.assertIn("draft --direction", out)
+        self.assertIn("--direct", out)
+
+    def test_choose_direct(self):
+        job = self.new_job()
+        code, out = run("choose", "--job", job, "--direct")
+        self.assertEqual(code, 0, out)
+        self.assertTrue(out.startswith("OK:"), out)
+        d = self.data(job)
+        self.assertEqual((d["chosen"], d["stage"]), ("direct", "stages"))
+
+    def test_choose_needs_exactly_one_option(self):
+        job = self.new_job()
+        with contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit):
+                run("choose", "--job", job)
+            with self.assertRaises(SystemExit):
+                run("choose", "--job", job, "--direct", "--direction", "A")
+
+    def test_stage_never_goes_back(self):
+        job = self.new_job()
+        self.assertEqual(run("choose", "--job", job, "--direct")[0], 0)
+        self.draft(job, "A")
+        self.assertEqual(self.data(job)["stage"], "stages")
+        jobs.advance(job, "composition")
+        jobs.advance(job, "stages")
+        self.assertEqual(self.data(job)["stage"], "composition")
+
+    def test_status_shows_stage_and_next_step(self):
+        job = self.new_job()
+        code, out = run("status", "--job", job.name)
+        self.assertIn("etap: brief → dopytaj o brief", out)
+        self.draft(job, "A")
+        self.assertIn("etap: directions → pokaż kierunki i poczekaj na wybór", run("status")[1])
+        run("choose", "--job", job, "--direct")
+        self.assertIn("etap: stages → dopracuj etapami", run("status", "--job", job.name)[1])
+
+    def check_out(self, job):
+        code, out = run("check", "--job", job)
+        return code, [l for l in out.splitlines() if "] process:" in l]
+
+    def test_check_fails_without_brief(self):
+        job = self.new_job()
+        run("choose", "--job", job, "--direct")
+        code, lines = self.check_out(job)
+        self.assertEqual(code, 3)
+        self.assertEqual(len(lines), 1, lines)
+        self.assertIn("brief.md", lines[0])
+        self.assertIn("[-] process:", lines[0])
+
+    def test_check_fails_when_brief_is_only_a_few_words(self):
+        job = self.new_job()
+        run("choose", "--job", job, "--direct")
+        (job / "brief.md").write_text("# Brief\n\n## Cel\nPost\n- Nagłówek: Hej\n", encoding="utf-8")
+        self.assertEqual(len(self.check_out(job)[1]), 1)
+
+    def test_check_fails_without_choose(self):
+        job = self.new_job()
+        (job / "brief.md").write_text(REAL_BRIEF, encoding="utf-8")
+        code, lines = self.check_out(job)
+        self.assertEqual(code, 3)
+        self.assertEqual(len(lines), 1, lines)
+        self.assertIn("choose", lines[0])
+        self.assertIn("choose --direct", lines[0])
+
+    def test_check_process_passes_after_brief_and_choose(self):
+        job = self.new_job()
+        self.draft(job, "A")
+        (job / "brief.md").write_text(REAL_BRIEF, encoding="utf-8")
+        self.assertEqual(run("choose", "--job", job, "--direction", "A")[0], 0)
+        code, lines = self.check_out(job)
+        self.assertEqual(lines, [])
+
+    def test_unfilled_template_brief_fails(self):
+        job = self.new_job()
+        self.assertFalse(jobs.brief_filled(job))
+        (job / "brief.md").write_text(REAL_BRIEF, encoding="utf-8")
+        self.assertTrue(jobs.brief_filled(job))
+        (job / "brief.md").unlink()
+        self.assertFalse(jobs.brief_filled(job))
+
+
 class TestLibrary(Env):
     def test_library_set_and_get(self):
         code, out = run("library", "--set", self.lib)

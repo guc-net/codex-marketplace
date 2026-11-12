@@ -5,6 +5,7 @@ import base64
 import html as htmllib
 import json
 import re
+import secrets
 import shutil
 import tempfile
 from pathlib import Path
@@ -36,6 +37,9 @@ def _brand_uris(text: str, brand: Optional[Brand]) -> str:
             missing.append(f"brand:{rel} (zlecenie nie ma biblii marki)")
             return m.group(0)
         path = (brand.dir / rel)
+        if not brandlib.inside(brand.dir, path):
+            missing.append(f"brand:{rel} (ścieżka wychodzi poza folder marki {brand.dir})")
+            return m.group(0)
         if not path.is_file():
             missing.append(f"brand:{rel} (nie ma pliku {path})")
             return m.group(0)
@@ -55,12 +59,72 @@ def _font_faces(brand: Optional[Brand]) -> str:
     for f in brand.fonts.values():
         if not f.family or f.file is None or not f.file.is_file():
             continue
-        ext = f.file.suffix.lower()
-        mime = "font/otf" if ext == ".otf" else "font/ttf"
+        if not brandlib.inside(brand.dir, f.file) or f.file.suffix.lower() not in brandlib.FONT_EXTENSIONS:
+            continue  # build_html odrzuca to wcześniej; tu tylko druga linia obrony
+        mime = FONT_MIME[f.file.suffix.lower()]
         data = base64.b64encode(f.file.read_bytes()).decode("ascii")
         family = f.family.replace("\\", "\\\\").replace('"', '\\"')
         css.append(f'@font-face{{font-family:"{family}";src:url("data:{mime};base64,{data}");}}')
     return "\n".join(css)
+
+
+FONT_MIME = {".ttf": "font/ttf", ".otf": "font/otf", ".woff": "font/woff", ".woff2": "font/woff2"}
+
+# Zasada bezpieczeństwa strony (CSP), wstrzykiwana jako PIERWSZY element: kompozycja bywa pisana
+# przez agenta, a po regule Codexa Chrome działa poza piaskownicą. Bez skryptów strony (tylko nasz
+# raport, z jednorazowym nonce), bez sieci, ramek, obiektów, @import i zewnętrznych fontów.
+# Obrazy tylko z plików i data:, fonty tylko z data: (fonty marki wstawiamy sami jako data:).
+# `base-uri file:` zamiast 'none', bo sami wstawiamy <base> (jako pierwszy, więc inny <base>
+# kompozycji i tak jest pomijany).
+CSP_DIRECTIVES = ("default-src 'none'", "script-src 'nonce-{nonce}'", "style-src 'unsafe-inline'",
+                  "img-src file: data:", "font-src data:", "connect-src 'none'", "frame-src 'none'",
+                  "object-src 'none'", "base-uri file:", "form-action 'none'")
+
+
+def csp_policy(nonce: str) -> str:
+    return "; ".join(d.format(nonce=nonce) for d in CSP_DIRECTIVES)
+
+
+# <meta http-equiv="refresh"> to jedyne przekierowanie bez skryptu, a CSP go nie blokuje.
+_REFRESH = re.compile(r"http-equiv\s*=\s*[\"']?\s*refresh", re.I)
+
+
+def _reject_redirects(text: str, composition: Path) -> None:
+    if _REFRESH.search(htmllib.unescape(text)):
+        raise GdError(f"kompozycja {composition.name} zawiera <meta http-equiv=\"refresh\">, który "
+                      "przekierowuje stronę. Usuń go: kompozycja ma być jedną nieruchomą stroną.")
+
+
+def _doctype_end(text: str) -> Optional[int]:
+    """Pozycja tuż za doctype, jeśli przed nim są tylko BOM, białe znaki i zwykłe komentarze.
+
+    Komentarz bierzemy tylko wtedy, gdy przeglądarka na pewno zakończy go w tym samym miejscu
+    co my (pierwsze `-->`): bez `--!>` w środku i bez zapisu `<!-->` albo `<!--->`. Inaczej
+    skrypt ukryty „w komentarzu” mógłby wykonać się przed naszą zasadą bezpieczeństwa."""
+    i, n = (1 if text.startswith("\ufeff") else 0), len(text)
+    while True:
+        while i < n and text[i] in "\t\n\f\r ":
+            i += 1
+        if not text.startswith("<!--", i):
+            break
+        j = text.find("-->", i + 4)
+        body = text[i + 4:j] if j >= 0 else ""
+        if j < 0 or body.startswith((">", "->")) or "--!>" in body:
+            return None
+        i = j + 3
+    if text[i:i + 9].lower() != "<!doctype":
+        return None
+    j = text.find(">", i)
+    return j + 1 if j >= 0 else None
+
+
+def _insert_prelude(text: str, prelude: str) -> str:
+    """Wstawia `prelude` po doctype (żeby nie zmieniać trybu strony) albo na samym początku,
+    przed jakąkolwiek treścią kompozycji."""
+    pos = _doctype_end(text)
+    if pos is None:
+        pos = 1 if text.startswith("\ufeff") else 0
+    return text[:pos] + prelude + text[pos:]
 
 
 _REPORT_JS = r"""
@@ -120,6 +184,11 @@ def build_html(composition: Path, brand: Optional[Brand], fmt: dict, hide_text: 
         text = composition.read_text(encoding="utf-8")
     except OSError as e:
         raise GdError(f"nie mogę odczytać {composition}: {e}")
+    _reject_redirects(text, composition)
+    problems = brandlib.path_problems(brand) if brand is not None else []
+    if problems:
+        raise GdError("biblia marki wskazuje pliki spoza swojego folderu albo pliki złego typu: "
+                      + "; ".join(problems))
     text = _brand_uris(text, brand)
     w, h = fmt["width"], fmt["height"]
     base = composition.resolve().parent.as_uri().rstrip("/") + "/"
@@ -136,8 +205,12 @@ def build_html(composition: Path, brand: Optional[Brand], fmt: dict, hide_text: 
         css.append(f"html{{zoom:{pw / MM_PER_INCH * 96 / w:.8f}}}")
     if hide_text:
         css.append('[data-gd="text"]{visibility:hidden}')
-    head = (f'<base href="{htmllib.escape(base)}">\n<style id="gd-inject">\n'
-            + "\n".join(c for c in css if c) + "\n</style>\n")
+    head = '<style id="gd-inject">\n' + "\n".join(c for c in css if c) + "\n</style>\n"
+    nonce = secrets.token_urlsafe(18)  # nowy przy każdym budowaniu; strona go nie zna
+    # Pierwsze w <head>: zasada bezpieczeństwa, potem kodowanie (musi być w pierwszym 1 KB) i <base>.
+    prelude = (f'<meta http-equiv="Content-Security-Policy" content="{csp_policy(nonce)}">\n'
+               '<meta charset="utf-8">\n'
+               f'<base href="{htmllib.escape(base)}">\n')
     s = fmt.get("safe") or {}
     tail = ""
     if overlay:
@@ -155,14 +228,15 @@ def build_html(composition: Path, brand: Optional[Brand], fmt: dict, hide_text: 
                 if f.family and f.file is not None and f.file.is_file()] if brand else []
     js = _REPORT_JS.replace("%BRAND%", json.dumps(families)).replace("%DECLARED%", json.dumps(declared))
     js = js.replace("</", "<\\/")
-    tail += f'<pre id="gd-report" hidden></pre>\n<script>{js}</script>\n'
+    tail += f'<pre id="gd-report" hidden></pre>\n<script nonce="{nonce}">{js}</script>\n'
 
     if re.search(r"</head\s*>", text, re.I):
         text = re.sub(r"</head\s*>", lambda m: head + m.group(0), text, count=1, flags=re.I)
     elif re.search(r"<body[^>]*>", text, re.I):
         text = re.sub(r"<body[^>]*>", lambda m: head + m.group(0), text, count=1, flags=re.I)
     else:
-        text = head + text
+        prelude += head
+    text = _insert_prelude(text, prelude)
     if re.search(r"</body\s*>", text, re.I):
         idx = [m.start() for m in re.finditer(r"</body\s*>", text, re.I)][-1]
         text = text[:idx] + tail + text[idx:]
@@ -214,6 +288,10 @@ def _brand_of(job: Path) -> Optional[Brand]:
 def render_job(job_dir: Path, only: Optional[str] = None, preview: bool = False) -> List[Path]:
     job = Path(job_dir)
     data = jobs.load(job)
+    for name in ("final", "drafts"):
+        if (job / name).exists() and not brandlib.inside(job, job / name):
+            raise GdError(f"folder {name}/ zlecenia wskazuje poza folderem zlecenia "
+                          f"({(job / name).resolve()}); nie zapisuję tam. Usuń to dowiązanie.")
     known = formats()
     ids = [only] if only else list(data.get("formats", []))
     if only and only not in data.get("formats", []):

@@ -8,16 +8,20 @@ import re
 import urllib.request
 from pathlib import Path
 
-from gd.common import PLUGIN_ROOT
+from gd.common import PLUGIN_ROOT, gd_home
 
 SOURCE_URL = "https://raw.githubusercontent.com/guc-net/codex-marketplace/main/plugins/graphic-designer/"
 MARKETPLACE = "guc-net"
 
 
+def source_url() -> str:
+    """Oficjalny adres pluginu na GitHubie. Zmienna GD_UPDATE_SOURCE służy tylko do testów;
+    polecenie nie przyjmuje adresu w argumentach, bo reguły Codexa nie ograniczają argumentów."""
+    return os.environ.get("GD_UPDATE_SOURCE") or SOURCE_URL
+
+
 def default_cache() -> Path:
-    home = os.environ.get("GD_HOME")
-    base = Path(home).expanduser() if home else Path.home() / ".graphic-designer"
-    return base / "update.json"
+    return gd_home() / "update.json"
 
 
 def installed_version() -> str:

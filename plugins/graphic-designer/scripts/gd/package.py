@@ -148,5 +148,6 @@ def adopt(package_dir: Path, title: Optional[str] = None) -> Path:
         shutil.copyfile(pkg / "brief.md", job / "brief.md")
     data = jobs.load(job)
     data["stage"] = "stages"
+    data["chosen"] = "direct"  # przejęty pakiet nie ma rundy kierunków
     jobs.save(job, data)
     return job

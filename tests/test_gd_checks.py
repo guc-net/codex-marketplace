@@ -36,7 +36,7 @@ class Checks(BrowserCase):
     def test_clean_composition_passes(self):
         job = self.go(TEXT_OK % ("#F5F5F5", "Ślub w sobotę") + LOGO_OK)
         code, out = self.problems(job)
-        self.assertEqual((code, out.strip().splitlines()[0]), (0, "OK: 10/10"), out)
+        self.assertEqual((code, out.strip().splitlines()[0]), (0, "OK: 12/12"), out)
 
     def test_low_contrast_flagged(self):
         job = self.go(TEXT_OK % ("#2A6F97", "14.03"), bg="#14213D")
@@ -151,6 +151,18 @@ class ChecksFixes(BrowserCase):
         os.utime(comp, (later, later))
         os.utime(job / "final" / "ig-post.png", (later + 5, later + 5))
         self.assertEqual(run("check", "--job", job)[0], 0)
+
+    def test_unfrozen_layer_message_tells_to_freeze(self):
+        job = self.new_job()
+        (job / "layers" / "tlo.png").write_bytes((KIWI / "brand" / "logo" / "mark.png").read_bytes())
+        self.write(job, "ig-post", TEXT_OK % ("#F5F5F5", "Ślub") + LOGO_OK
+                   + '<img src="../layers/tlo.png" style="position:absolute;left:500px;top:700px;width:100px">',
+                   BG % "#101010")
+        self.assertEqual(run("render", "--job", job)[0], 0)
+        code, out = run("check", "--job", job)
+        self.assertEqual(code, 3, out)
+        self.assertIn("nie jest zamrożona", out)
+        self.assertIn("freeze", out)
 
     def test_font_family_case_insensitive(self):
         job = self.new_job()

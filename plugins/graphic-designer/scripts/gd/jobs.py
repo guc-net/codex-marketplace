@@ -14,6 +14,15 @@ from .common import PLUGIN_ROOT, GdError, now_iso, read_settings, slug
 SOURCES = ("generated", "photo", "brand", "composed")
 SUBDIRS = ("drafts", "layers", "composition", "final")
 NO_BRAND_PROJECT = "bez-marki"
+STAGES = ("brief", "directions", "stages", "composition", "final")
+BRIEF_MIN_CHARS = 40
+NEXT_STEP = {
+    "brief": "dopytaj o brief i zapisz kierunki (draft --direction)",
+    "directions": "pokaż kierunki i poczekaj na wybór, potem choose",
+    "stages": "dopracuj etapami (draft, freeze), potem render",
+    "composition": "check, samoocena, pokaz z listą do sprawdzenia przez człowieka",
+    "final": "zamknięte; nic do zrobienia",
+}
 
 
 # --- biblioteka ---------------------------------------------------------------
@@ -125,6 +134,59 @@ def create(title: str, formats: List[str], project: Optional[str], brand_dir: Op
     return job
 
 
+def advance(job: Path, stage: str) -> None:
+    """Przesuwa etap zlecenia do przodu; nigdy nie cofa."""
+    data = load(job)
+    cur = data.get("stage")
+    if cur in STAGES and STAGES.index(cur) >= STAGES.index(stage):
+        return
+    data["stage"] = stage
+    save(job, data)
+
+
+def brief_filled(job: Path) -> bool:
+    """Czy brief.md ma realną treść: poza nagłówkami i tekstem szablonu jest >= 40 znaków."""
+    path = Path(job) / "brief.md"
+    if not path.is_file():
+        return False
+    template = PLUGIN_ROOT / "skills" / "graphic-designer" / "references" / "brief.md"
+    boiler = {l.strip() for l in template.read_text(encoding="utf-8").splitlines()}
+    labels = sorted((l for l in boiler if l.startswith("- ") and l.endswith(":")), key=len, reverse=True)
+    kept = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or line in boiler:
+            continue
+        for label in labels:
+            if line.startswith(label):
+                line = line[len(label):]
+                break
+        kept.append(line)
+    return len("".join("".join(kept).split())) >= BRIEF_MIN_CHARS
+
+
+def choose(job: Path, direction: Optional[str], direct: bool) -> str:
+    """Zapisuje wybór kierunku (albo `direct`: zlecenie bez rundy kierunków). Zwraca zapisaną wartość."""
+    if bool(direction) == bool(direct):
+        raise GdError("podaj dokładnie jedno: --direction <litera> albo --direct")
+    data = load(job)
+    if direct:
+        value = "direct"
+    else:
+        known = data.get("directions") or {}
+        match = [k for k in known if k.lower() == direction.strip().lower()]
+        if not match:
+            have = ", ".join(sorted(known)) or "żadnego"
+            raise GdError(f"kierunek „{direction}” nie istnieje w zleceniu (zapisane kierunki: {have}). "
+                          "Najpierw zapisz go: draft --direction <litera>. "
+                          "Zlecenie bez rundy kierunków: choose --direct.")
+        value = match[0]
+    data["chosen"] = value
+    save(job, data)
+    advance(job, "stages")
+    return value
+
+
 def set_brand(job: Path, brand_dir: Path) -> Path:
     brandlib.load(brand_dir)  # zły katalog albo biblia -> GdError
     data = load(job)
@@ -175,6 +237,11 @@ def add_draft(job: Path, src: Path, direction: str, note: str, prompt: str) -> P
             "prompt": prompt, "created": now_iso()}
     (drafts / (stem + ".json")).write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n",
                                            encoding="utf-8")
+    data = load(job)
+    directions = data.setdefault("directions", {})
+    directions[direction] = {"versions": n, "note": note}
+    save(job, data)
+    advance(job, "directions")
     return dest
 
 

@@ -139,11 +139,20 @@ class BrowserCase(EnvVars):
         self.brand_dir = self.tmp / "marka" / "brand"
         shutil.copytree(KIWI / "brand", self.brand_dir)
 
-    def new_job(self, formats="ig-post", title="Plakat ślub"):
+    def new_job(self, formats="ig-post", title="Plakat ślub", ready=True):
+        """Zlecenie; `ready` = prawdziwy brief i `choose --direct`, żeby `check` nie wołał o proces."""
         code, out = run("new", "--title", title, "--formats", formats, "--project", "Plakat ślub",
                         "--brand", self.brand_dir)
         self.assertEqual(code, 0, out)
-        return Path(out.split("JOB:", 1)[1].strip().splitlines()[0])
+        job = Path(out.split("JOB:", 1)[1].strip().splitlines()[0])
+        if ready:
+            self.make_ready(job)
+        return job
+
+    def make_ready(self, job):
+        (job / "brief.md").write_text(REAL_BRIEF, encoding="utf-8")
+        code, out = run("choose", "--job", job, "--direct")
+        self.assertEqual(code, 0, out)
 
     def write(self, job, fmt, body, head=""):
         (job / "composition" / f"{fmt}.html").write_text(
@@ -165,6 +174,17 @@ class WithBrowser(BrowserCase):
         self.assertEqual(png.size(job / "final" / "ig-post.png"), (1080, 1350))
         self.assertEqual(png.size(job / "final" / "ig-story.png"), (1080, 1920))
         self.assertEqual(png.read(job / "final" / "ig-post.png").pixel(5, 5)[:3], (0x10, 0x10, 0x10))
+
+    def test_render_moves_stage_to_composition_but_preview_does_not(self):
+        job = self.new_job()
+        stage = lambda: json.loads((job / "job.json").read_text(encoding="utf-8"))["stage"]  # noqa: E731
+        self.assertEqual(stage(), "stages")
+        shutil.copyfile(PLUGIN / "templates" / "composition-starter.html",
+                        job / "composition" / "ig-post.html")
+        self.assertEqual(run("render", "--job", job, "--preview")[0], 0)
+        self.assertEqual(stage(), "stages")
+        self.assertEqual(run("render", "--job", job)[0], 0)
+        self.assertEqual(stage(), "composition")
 
     def test_starter_renders(self):
         job = self.new_job()
@@ -299,6 +319,203 @@ class EnvCommand(EnvVars):
         self.setenv("OPENAI_API_KEY", "")
         code, out = run("env")
         self.assertNotIn("WARNING", out)
+
+
+REAL_BRIEF = """# Brief zlecenia
+
+## Cel
+Zachęcić do zapisu na warsztaty ceramiki w sobotę wieczorem.
+
+## Odbiorca
+Mieszkańcy dzielnicy, Instagram, post 4:5.
+
+## Teksty dosłowne
+- Nagłówek: Wieczór z gliną
+- Data i godzina: sobota, 18.00
+"""
+
+
+def fake_browser(tmp, body):
+    """Mały skrypt udający przeglądarkę (tylko systemy z powłoką sh)."""
+    path = Path(tmp) / "fake-browser.sh"
+    path.write_text("#!/bin/sh\n" + body + "\n", encoding="utf-8")
+    path.chmod(0o755)
+    return path
+
+
+@unittest.skipIf(os.name == "nt", "atrapa przeglądarki to skrypt sh")
+class SandboxCrash(EnvVars):
+    """Awaria przeglądarki w piaskownicy Codexa ma dać jasny trop SANDBOX?."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.tmp = Path(self._tmp.name)
+        self.html = self.tmp / "x.html"
+        self.html.write_text("<html><body>x</body></html>", encoding="utf-8")
+        self.setenv("CODEX_SANDBOX", None)
+
+    def crash(self, body):
+        self.setenv("GD_BROWSER", str(fake_browser(self.tmp, body)))
+        with self.assertRaises(GdError) as cm:
+            browser.dump_dom(self.html, 100, 100)
+        return str(cm.exception)
+
+    def test_exit_134_is_sandbox_hint(self):
+        msg = self.crash("exit 134")
+        self.assertTrue(msg.startswith("SANDBOX?:"), msg)
+        self.assertIn("piaskownic", msg)
+        self.assertIn("poza piaskownicą", msg)
+        self.assertIn("przeglądarka zakończyła się kodem 134", msg)
+
+    def test_signal_abort_is_sandbox_hint(self):
+        msg = self.crash("kill -ABRT $$")
+        self.assertTrue(msg.startswith("SANDBOX?:"), msg)
+        self.assertIn("kodem -6", msg)
+
+    def test_exit_139_and_133_are_sandbox_hint(self):
+        for code in (133, 139):
+            self.assertTrue(self.crash(f"exit {code}").startswith("SANDBOX?:"), code)
+
+    def test_other_crash_signals_are_sandbox_hint(self):
+        for sig in ("ILL", "TRAP", "SEGV"):
+            self.assertTrue(self.crash(f"kill -{sig} $$").startswith("SANDBOX?:"), sig)
+        for code in (132, 138):
+            self.assertTrue(self.crash(f"exit {code}").startswith("SANDBOX?:"), code)
+
+    def test_kill_and_term_are_not_sandbox_hint(self):
+        for sig in ("KILL", "TERM"):
+            msg = self.crash(f"kill -{sig} $$")
+            self.assertFalse(msg.startswith("SANDBOX?:"), (sig, msg))
+            self.assertIn("kodem -", msg)
+
+    def test_is_crash_list(self):
+        for code in (-4, -5, -6, -10, -11, 132, 133, 134, 138, 139):
+            self.assertTrue(browser.is_crash(code), code)
+        for code in (0, 1, 2, -2, -9, -15, 137, 143, 255):
+            self.assertFalse(browser.is_crash(code), code)
+
+    def test_ordinary_failure_has_no_sandbox_hint(self):
+        msg = self.crash("echo zly argument >&2; exit 1")
+        self.assertFalse(msg.startswith("SANDBOX?:"), msg)
+        self.assertIn("kodem 1", msg)
+        self.assertIn("zly argument", msg)
+
+
+@unittest.skipIf(os.name == "nt", "atrapa przeglądarki to skrypt sh")
+class EnvSmokeTest(EnvVars):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.tmp = Path(self._tmp.name)
+        self.setenv("CODEX_SANDBOX", None)
+
+    def test_env_browser_test_ok(self):
+        self.setenv("GD_BROWSER", str(fake_browser(self.tmp, "echo '<html></html>'")))
+        code, out = run("env")
+        self.assertEqual(code, 0)
+        self.assertIn("BROWSER: ", out)
+        self.assertIn("BROWSER-TEST: OK", out)
+
+    def test_env_browser_test_crash(self):
+        self.setenv("GD_BROWSER", str(fake_browser(self.tmp, "exit 134")))
+        code, out = run("env")
+        self.assertEqual(code, 0)
+        self.assertIn("BROWSER: ", out)
+        self.assertRegex(out, r"BROWSER-TEST: FAILED \(kod 134\) — SANDBOX\?:")
+
+    def test_env_browser_test_ordinary_failure(self):
+        self.setenv("GD_BROWSER", str(fake_browser(self.tmp, "exit 2")))
+        code, out = run("env")
+        self.assertEqual(code, 0)
+        self.assertRegex(out, r"BROWSER-TEST: FAILED \(kod 2\)")
+        self.assertNotIn("SANDBOX?", out)
+
+    def test_env_smoke_test_survives_oserror(self):
+        from unittest import mock
+        self.setenv("GD_BROWSER", str(fake_browser(self.tmp, "echo '<html></html>'")))
+        with mock.patch.object(browser.tempfile, "mkdtemp", side_effect=OSError("brak TMPDIR")):
+            code, out = run("env")
+        self.assertEqual(code, 0)
+        self.assertIn("BROWSER-TEST: FAILED", out)
+        self.assertIn("brak TMPDIR", out)
+        self.assertRegex(out, r"PYTHON: \d+")
+
+    def test_env_no_browser_no_smoke_test(self):
+        self.setenv("GD_BROWSER", "/nie/ma/przegladarki")
+        code, out = run("env")
+        self.assertEqual(code, 0)
+        self.assertIn("NO BROWSER", out)
+        self.assertNotIn("BROWSER-TEST", out)
+
+
+@unittest.skipIf(os.name == "nt", "atrapa przeglądarki to skrypt sh")
+class CodexSeatbelt(EnvVars):
+    """W piaskownicy Codexa na macOS przeglądarki nie uruchamiamy (okno „quit unexpectedly”)."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.tmp = Path(self._tmp.name)
+        self.marker = self.tmp / "launched"
+        self.html = self.tmp / "x.html"
+        self.html.write_text("<html><body>x</body></html>", encoding="utf-8")
+        self.setenv("GD_BROWSER", str(fake_browser(self.tmp, f"touch '{self.marker}'; echo '<html></html>'")))
+        self.setenv("GD_BROWSER_TRY", None)
+        self.setenv("CODEX_SANDBOX", "seatbelt")
+
+    def test_env_skips_smoke_test_and_does_not_launch(self):
+        code, out = run("env")
+        self.assertEqual(code, 0)
+        self.assertIn("BROWSER: ", out)
+        self.assertIn("BROWSER-TEST: SKIPPED (piaskownica Codexa na macOS", out)
+        self.assertIn("quit unexpectedly", out)
+        self.assertIn("Uruchom `env` poza piaskownicą.", out)
+        self.assertIn("SANDBOX?:", out)
+        self.assertRegex(out, r"PYTHON: \d+")
+        self.assertFalse(self.marker.exists())
+
+    def test_browser_call_raises_sandbox_hint_without_launching(self):
+        with self.assertRaises(GdError) as cm:
+            browser.dump_dom(self.html, 100, 100)
+        msg = str(cm.exception)
+        self.assertTrue(msg.startswith("SANDBOX?:"), msg)
+        self.assertIn("poza piaskownicą", msg)
+        self.assertIn("GD_BROWSER_TRY=1", msg)
+        self.assertFalse(self.marker.exists())
+
+    def test_try_variable_forces_launch(self):
+        self.setenv("GD_BROWSER_TRY", "1")
+        self.assertIn("<html>", browser.dump_dom(self.html, 100, 100))
+        self.assertTrue(self.marker.exists())
+        self.marker.unlink()
+        code, out = run("env")
+        self.assertIn("BROWSER-TEST: OK", out)
+        self.assertTrue(self.marker.exists())
+
+    def test_empty_try_variable_does_not_force(self):
+        self.setenv("GD_BROWSER_TRY", "")
+        with self.assertRaises(GdError):
+            browser.dump_dom(self.html, 100, 100)
+        self.assertFalse(self.marker.exists())
+
+    def test_other_sandbox_value_changes_nothing(self):
+        self.setenv("CODEX_SANDBOX", "landlock")
+        self.assertIn("<html>", browser.dump_dom(self.html, 100, 100))
+        self.assertTrue(self.marker.exists())
+
+    def test_variable_unset_changes_nothing(self):
+        self.setenv("CODEX_SANDBOX", None)
+        code, out = run("env")
+        self.assertIn("BROWSER-TEST: OK", out)
+        self.assertNotIn("SKIPPED", out)
+        self.assertTrue(self.marker.exists())
+
+    def test_no_browser_still_reports_no_browser(self):
+        self.setenv("GD_BROWSER", "/nie/ma/przegladarki")
+        code, out = run("env")
+        self.assertIn("NO BROWSER", out)
+        self.assertNotIn("SKIPPED", out)
 
 
 if __name__ == "__main__":
