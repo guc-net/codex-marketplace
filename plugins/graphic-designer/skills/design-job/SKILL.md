@@ -6,7 +6,7 @@ description: Zaprojektuj plakat, post, relację, okładkę wydarzenia, logo na z
 # Zlecenie graficzne — od pomysłu do gotowych plików
 
 Mów po polsku, krótko, bez żargonu. Polecenia uruchamiasz sam, DESIGNER to ścieżka skryptu
-(jak w skillu `graphic-designer`: `python3 DESIGNER …`, Windows `py -3 DESIGNER …`).
+(jak w procedurze `graphic-designer`: `python3 DESIGNER …`, Windows `py -3 DESIGNER …`).
 Przykłady poniżej używają zmyślonej marki „Kiwi Studio”.
 
 Człowiek ocenia i akceptuje; ty proponujesz. Niczego nie publikujesz w mediach
@@ -184,5 +184,5 @@ Gdy osoba mówi, że grafika jest gotowa:
   wcześniej (np. aplikacją Zdjęcia na Macu albo iPhonie) jako plik z przezroczystym tłem;
   wejdzie jako warstwa.
 - Logo i zdjęcia osób nigdy z generatora. Tylko oryginalny plik.
-- Kolory i fonty spoza biblii marki — tylko za zgodą osoby; zmiana biblii to skill **brand-kit**.
+- Kolory i fonty spoza biblii marki — tylko za zgodą osoby; zmiana biblii to procedura **brand-kit**.
 - Wydruk (A4, A3): spad i PDF — `../graphic-designer/references/print.md`.

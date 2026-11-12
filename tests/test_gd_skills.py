@@ -192,7 +192,7 @@ class SkillsCase(unittest.TestCase):
         desc = frontmatter(SKILLS / "setup" / "SKILL.md")["description"]
         self.assertTrue(desc.startswith("Skonfiguruj graphic-designer"), desc[:40])
         for word in ("pierwsze uruchomienie", "konfiguracja", "ustaw", "reguły", "uprawnienia", "doctor",
-                     "zgodę przy każdym renderze", "piaskownicy", "macOS"):
+                     "zgodę przy każdym składaniu grafiki", "piaskownicy", "macOS"):
             self.assertIn(word, desc)
 
     def test_setup_flow_and_consent(self):
@@ -204,13 +204,15 @@ class SkillsCase(unittest.TestCase):
                        "Nigdy nie zapisujesz reguł bez wyraźnej zgody", "Czy dopisać te reguły?",
                        "Dopiero po wyraźnym „tak”", "dokładny tekst bloku",
                        # tylko dopisywanie
-                       "tylko dopisuje na końcu pliku reguł", "Nie zmieniasz niczego innego",
+                       "dopisuje na końcu pliku reguł", "ręczne zmiany w środku bloku znikają", "Nie zmieniasz niczego innego",
                        "reszty pliku nie ruszasz",
                        # restart i cofnięcie
                        "Codex czyta reguły tylko przy starcie", "Zamknij aplikację całkiem",
                        "nową rozmowę", "Cofnięcie", "# >>> graphic-designer",
                        # Terminal, gdy zapis się nie uda
                        "dokładne polecenie do Terminala",
+                       # zgoda także na plik startowy, kopia zapasowa
+                       "To samo dotyczy pliku startowego", "Czy mogę?", "default.rules.graphic-designer.bak",
                        # model i biblioteka
                        "gpt-6.1-sol", "Medium", "/model", "Graphics-work"):
             self.assertIn(phrase, text)
@@ -219,17 +221,22 @@ class SkillsCase(unittest.TestCase):
     def test_setup_explains_the_three_options_and_the_tradeoff(self):
         text = " ".join((SKILLS / "setup" / "SKILL.md").read_text(encoding="utf-8").split())
         block = text[text.index("trzy możliwości"):text.index("Krok 3a")]
-        for phrase in ("Wąskie reguły — zalecane", "Szerszy tryb w aplikacji", "Approve for me",
+        for phrase in ("Reguły tylko dla pięciu poleceń pluginu — zalecane, ale z zastrzeżeniami",
+                       "Szerszy tryb w aplikacji", "Approve for me",
                        "Full access", "w całej rozmowie, nie tylko dla pluginu", "kompromis",
-                       "Zgoda za każdym razem", "Nic się nie zapisuje"):
+                       "Zgoda za każdym razem", "Nic się nie zapisuje",
+                       # uczciwie o tym, co reguła pozwala (przegląd 0.2.0, C1)
+                       "reguła sprawdza tylko początek polecenia", "nie jest ograniczone",
+                       "bez skryptów, bez sieci, bez ramek",
+                       "dowolny plik graficzny z dysku", "otwieraj tylko zlecenia, którym ufasz"):
             self.assertIn(phrase, block)
-        self.assertLess(block.index("Wąskie reguły"), block.index("Szerszy tryb"))
+        self.assertLess(block.index("Reguły tylko dla pięciu poleceń"), block.index("Szerszy tryb"))
         self.assertLess(block.index("Szerszy tryb"), block.index("Zgoda za każdym razem"))
 
     def test_setup_says_what_it_cannot_do(self):
         text = " ".join((SKILLS / "setup" / "SKILL.md").read_text(encoding="utf-8").split())
         for phrase in ("Nie umiem zmienić ustawień aplikacji", "Ustawienia → Browser", "file://",
-                       "11.11.2026"):
+                       "11.11.2026", "mogą się różnić"):
             self.assertIn(phrase, text)
 
     def test_setup_is_plain_language(self):
@@ -240,13 +247,14 @@ class SkillsCase(unittest.TestCase):
     def test_entry_skill_uses_the_launcher_with_the_absolute_path(self):
         entry = " ".join((SKILLS / "graphic-designer" / "SKILL.md").read_text(encoding="utf-8").split())
         for phrase in ("Stały skrypt startowy", "Polecenie do uruchamiania", "pełnej postaci",
+                       "<CODEX_HOME albo ~/.codex>/graphic-designer/designer.py",
                        "przed `python3` nie wolno nic dopisywać", "`~` ani `$HOME`",
                        "ścieżki z folderu pluginu", "GD_BROWSER_TRY=1 python3"):
             self.assertIn(phrase, entry)
 
     def test_entry_skill_offers_setup_once_before_work(self):
         entry = " ".join((SKILLS / "graphic-designer" / "SKILL.md").read_text(encoding="utf-8").split())
-        phrase = "Skonfigurować to raz, żeby Codex nie pytał o zgodę przy każdym renderze?"
+        phrase = "Skonfigurować to raz, żeby Codex nie pytał o zgodę przy każdym składaniu grafiki?"
         self.assertIn(phrase, entry)
         self.assertIn("raz, przed rozpoczęciem pracy", entry)
         self.assertIn("nie pytaj drugi raz w tej rozmowie", entry)
@@ -276,11 +284,44 @@ class SkillsCase(unittest.TestCase):
                        "# <<< graphic-designer <<<", "poza piaskownicą i bez pytania o zgodę",
                        "setup-rules --remove", "default.rules", "CODEX_HOME", "GD_HOME",
                        "Codex czyta reguły tylko przy starcie", "Approve for me", "Full access",
-                       "usługi okien", "11.11.2026", "nie zawiera numeru wersji"):
+                       "usługi okien", "11.11.2026", "nie zawiera numeru wersji",
+                       # nowe miejsce pliku, kopia zapasowa, uczciwie o regule (przegląd 0.2.0)
+                       "~/.codex/graphic-designer/designer.py", "default.rules.graphic-designer.bak",
+                       "Reguła dopasowuje tylko początek polecenia", "dowolny plik graficzny z dysku",
+                       "otwieraj tylko zlecenia, którym ufasz", "GD_UPDATE_SOURCE",
+                       "ręczne zmiany w środku bloku znikają"):
             self.assertIn(phrase, docs)
         for phrase in ("Skonfiguruj graphic-designer", "Co robi konfiguracja i jak ją cofnąć",
                        "`doctor`", "`setup-launcher`", "`setup-rules`"):
             self.assertIn(phrase, readme)
+
+    def test_nothing_is_called_narrow_without_qualification(self):
+        """Reguła pozwala uruchamiać poza piaskownicą z dowolnymi argumentami: żadnego „wąskie”."""
+        files = [PLUGIN / "README.md", PLUGIN / "CHANGELOG.md", PLUGIN.parent.parent / "docs" / "graphic-designer.md"]
+        files += sorted(SKILLS.glob("*/SKILL.md"))
+        for f in files:
+            text = f.read_text(encoding="utf-8").lower()
+            self.assertNotIn("wąsk", text, f)
+            self.assertNotIn("narrow", text, f)
+
+    def test_skills_say_procedure_not_skill(self):
+        for f in sorted(SKILLS.glob("*/SKILL.md")):
+            text = f.read_text(encoding="utf-8")
+            self.assertNotRegex(text, r"\bskill(u|a|e|i|ach)?\b", f)
+
+    def test_launcher_location_is_the_codex_folder_everywhere(self):
+        """Stary adres pliku startowego może wystąpić tylko jako opis migracji."""
+        docs = (PLUGIN.parent.parent / "docs" / "graphic-designer.md").read_text(encoding="utf-8")
+        readme = (PLUGIN / "README.md").read_text(encoding="utf-8")
+        entry = (SKILLS / "graphic-designer" / "SKILL.md").read_text(encoding="utf-8")
+        for name, text in (("docs", docs), ("README", readme), ("entry", entry)):
+            self.assertNotIn("GD_HOME albo ~/.graphic-designer>/designer.py", text, name)
+            self.assertNotIn("python3 ~/.graphic-designer/designer.py", text, name)
+        self.assertIn("python3 ~/.codex/graphic-designer/designer.py setup-rules --remove", docs)
+
+    def test_setup_asks_before_installing_the_launcher(self):
+        text = " ".join((SKILLS / "setup" / "SKILL.md").read_text(encoding="utf-8").split())
+        self.assertLess(text.index("Czy mogę?"), text.index("uruchom `DESIGNER setup-launcher`"))
 
     def test_version_is_consistent_and_changelog_is_folded(self):
         import json

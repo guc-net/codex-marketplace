@@ -51,11 +51,17 @@ Polecenia: `version`, `library`, `new`, `set-brand`, `status`, `draft`, `choose`
 `doctor`, `setup-launcher`, `setup-rules`. Pomoc: `designer.py <polecenie> --help`.
 
 Konfiguracja: `doctor` pokazuje, co działa i jaki jest następny krok (nic nie zmienia);
-`setup-launcher` instaluje stały skrypt startowy w `~/.graphic-designer/designer.py`
-(`GD_HOME`), który znajduje najnowszą wersję pluginu; `setup-rules` pokazuje, a z `--apply`
-dopisuje albo z `--remove` usuwa oznaczony blok reguł Codexa (`~/.codex/rules/default.rules`,
-`CODEX_HOME`). Reguły pozwalają uruchamiać poza piaskownicą, bez pytania, tylko `env`, `render`,
-`check`, `update-check` i `doctor` przez stały skrypt.
+`setup-launcher` instaluje stały skrypt startowy w `~/.codex/graphic-designer/designer.py`
+(`CODEX_HOME`; folder chroniony przez Codex, ustawienia zostają w `~/.graphic-designer`,
+`GD_HOME`), który znajduje najnowszą wersję pluginu, i usuwa nasz dawny plik z `~/.graphic-designer`;
+`setup-rules` pokazuje, a z `--apply` dopisuje albo z `--remove` usuwa oznaczony blok reguł Codexa
+(`~/.codex/rules/default.rules`; przed pierwszą zmianą powstaje kopia
+`default.rules.graphic-designer.bak`). Reguły pozwalają uruchamiać poza piaskownicą, bez pytania,
+tylko `env`, `render`, `check`, `update-check` i `doctor` przez stały skrypt. Reguła dopasowuje
+tylko początek polecenia, więc argumenty nie są ograniczone; stronę ze zlecenia zamyka zasada
+bezpieczeństwa przeglądarki (bez skryptów, sieci i ramek), ale może ona pokazać na obrazie dowolny
+plik graficzny z dysku, więc otwieraj tylko zlecenia, którym ufasz. `update-check` nie przyjmuje
+adresu ani pliku w argumentach.
 
 Skrypt pilnuje procesu: `choose` zapisuje wybrany kierunek (`--direct` dla zlecenia bez rundy
 kierunków), `status` pokazuje etap i następny krok, a `check` zgłasza błąd `process`, gdy brief

@@ -102,9 +102,10 @@ do uruchamiania programów i do kontroli uprawnień. Dziennik odmów piaskownicy
 a Chrome kończy się awarią. Żaden przełącznik Chrome (także wyłączenie jego własnej piaskownicy)
 tego nie naprawia, bo to system odmawia, a nie Chrome. Poza piaskownicą Chrome działa
 normalnie, więc jedyne wyjście to uruchamiać go poza nią: za jednorazową zgodą albo dzięki
-konfiguracji opisanej niżej. Wbudowana przeglądarka aplikacji tu nie pomoże: blokuje adresy
-`file://` i zapisuje tylko JPEG. Wtedy `env` pokazuje `BROWSER-TEST: FAILED`, a `render` zwraca komunikat zaczynający
-się od `SANDBOX?:`.
+konfiguracji opisanej niżej. Wbudowana przeglądarka aplikacji tu nie pomoże: w naszych próbach
+z 11.11.2026 blokowała adresy `file://` i zapisywała tylko JPEG (w Twojej wersji aplikacji może to
+wyglądać inaczej). Wtedy `env` pokazuje `BROWSER-TEST: FAILED`, a `render` zwraca komunikat
+zaczynający się od `SANDBOX?:`.
 
 Na Macu przeglądarka w piaskownicy kończy się awarią, a system pokazuje okienko „Google Chrome
 quit unexpectedly”. Plugin wie o tym i w piaskownicy w ogóle jej nie uruchamia: `env` pokazuje
@@ -115,8 +116,8 @@ uruchomienie polecenia poza piaskownicą (okno zgody w aplikacji). Możesz też 
 aplikację z szerszymi uprawnieniami. Po zgodzie Chrome działa (sprawdzone 11.11.2026 w aplikacji Codex na Macu): składa poprawny plik
 PNG. Komunikaty w wyniku polecenia o `CVDisplayLink` i „Trying to load the allocator multiple
 times” to nieszkodliwy szum. Jeśli okno zgody pozwala zapamiętać decyzję dla takich poleceń,
-możesz z tego skorzystać. Nie eksportuj grafiki przez wbudowaną przeglądarkę aplikacji: blokuje
-adresy `file://`. Bez zgody plugin nie złoży ani nie sprawdzi grafiki; może
+możesz z tego skorzystać. Nie eksportuj grafiki przez wbudowaną przeglądarkę aplikacji: w naszych
+próbach blokowała adresy `file://`. Bez zgody plugin nie złoży ani nie sprawdzi grafiki; może
 tylko proponować kierunki i szkice. Podobnie pyta o zgodę na dostęp do sieci (sprawdzenie
 aktualizacji) i na zapis w Twojej bibliotece grafik.
 
@@ -132,26 +133,55 @@ i pyta o zgodę. Na pytanie „Czy dopisać te reguły?” odpowiadasz Ty.
 
 **Co zapisuje**
 
-- Mały plik startowy `designer.py` w folderze ustawień pluginu (`~/.graphic-designer`; inny folder
-  wskaże zmienna `GD_HOME`). Ścieżka do niego nie zawiera numeru wersji, więc nie zmienia się przy
-  aktualizacjach pluginu i reguły nie przestają działać. Plik sam znajduje najnowszą wersję pluginu.
+- Mały plik startowy `designer.py` w folderze `graphic-designer` wewnątrz folderu Codexa:
+  `~/.codex/graphic-designer/designer.py` (przy ustawionej zmiennej `CODEX_HOME` w tym folderze).
+  Codex chroni swój folder przed zapisem z piaskownicy, więc agent pracujący w piaskownicy nie
+  podmieni pliku, któremu reguły ufają. Ścieżka do pliku nie zawiera numeru wersji, więc nie
+  zmienia się przy aktualizacjach pluginu i reguły nie przestają działać. Plik sam znajduje
+  najnowszą wersję pluginu, ale tylko w folderze `plugins/cache/guc-net/graphic-designer/` Codexa
+  (wersje zapisane jako `X.Y.Z`, z plikiem `plugin.json` o nazwie `graphic-designer`).
+  Twoje ustawienia (biblioteka zleceń, sprawdzenie aktualizacji) zostają tam, gdzie były:
+  w `~/.graphic-designer` (inny folder wskaże zmienna `GD_HOME`).
+- Jeśli wcześniejsza wersja zapisała plik startowy w `~/.graphic-designer/designer.py`, `setup-launcher`
+  usuwa go (tylko gdy to nasz plik; cudzego nie rusza) i ostrzega, gdy reguły nadal mu ufają.
+  Wtedy `setup-rules --apply` przepisze reguły na nową ścieżkę.
 - Jeden blok reguł Codexa, dopisany na końcu pliku `~/.codex/rules/default.rules` (albo w folderze
   wskazanym zmienną `CODEX_HOME`), między liniami `# >>> graphic-designer (zarządzane przez plugin) >>>`
-  i `# <<< graphic-designer <<<`. Reszty pliku nie rusza, nie usuwa i nie przepisuje. Jeśli pliku
-  nie ma, powstaje nowy.
+  i `# <<< graphic-designer <<<`. Reszty pliku nie rusza i nie przepisuje; jeśli pliku nie ma,
+  powstaje nowy. Plik jest zapisywany atomowo (najpierw plik tymczasowy, potem podmiana), więc
+  przy błędzie zostaje taki, jaki był. Przed pierwszą zmianą istniejącego pliku powstaje
+  jednorazowa kopia `default.rules.graphic-designer.bak` w tym samym folderze; kolejnych zmian
+  nie kopiuje i istniejącej kopii nie nadpisuje. Przy aktualizacji bloku plugin zastępuje całą
+  treść między znacznikami, więc ręczne zmiany w środku bloku znikają.
 
-**Co te reguły pozwalają.** Pięć poleceń pluginu: `env`, `render`, `check`, `update-check`
-i `doctor`, uruchamianych dokładnie przez ten plik startowy. Uruchamiają się **poza piaskownicą i
-bez pytania o zgodę**. W praktyce znaczy to, że Chrome składa grafikę bez ograniczeń piaskownicy
-(otwiera stronę ze zlecenia w Twoim folderze), a sprawdzanie aktualizacji ma dostęp do sieci. Każde
-inne polecenie dalej działa według zwykłych zasad i pyta o zgodę. Reguły czytają tylko początek
-polecenia, więc muszą się zgadzać co do litery: dlatego asystent używa pełnej ścieżki pliku
-startowego.
+**Co te reguły pozwalają, uczciwie.** Pięć poleceń pluginu: `env`, `render`, `check`,
+`update-check` i `doctor`, uruchamianych dokładnie przez ten plik startowy. Uruchamiają się
+**poza piaskownicą i bez pytania o zgodę**. Trzeba to rozumieć tak:
+
+- Reguła dopasowuje tylko początek polecenia (`python3 <plik> render`). Argumenty po nim, np.
+  `--job <folder>`, nie są ograniczone. Nie jest to więc „zgoda na jedno konkretne zlecenie”.
+- `render` i `check` otwierają stronę ze zlecenia w Chrome **bez piaskownicy**. Plugin zamyka
+  tę stronę zasadą bezpieczeństwa przeglądarki (CSP): bez skryptów, bez połączeń z siecią, bez
+  ramek i wtyczek, bez przekierowań; Chrome dostaje też flagi wyłączające rozszerzenia i
+  synchronizację. Sprawdzamy to testami z prawdziwą przeglądarką.
+- Zostaje jedno znane ograniczenie: strona ze zlecenia może pokazać na składanym obrazie **dowolny
+  plik graficzny z dysku** (obrazy z adresów `file:` są dozwolone, bo zlecenia korzystają z
+  logo i zdjęć w swoich folderach). Skrypty i sieć są zablokowane, więc taki plik nie wyjdzie
+  przez sieć, ale może trafić do gotowego PNG. Dlatego otwieraj tylko zlecenia, którym ufasz (własne albo od zaufanej osoby).
+- Plugin sprawdza też, że fonty i logo z biblii marki leżą w folderze marki, a foldery `final/`
+  i `drafts/` zlecenia nie wskazują poza zlecenie.
+- `update-check` nie przyjmuje już adresu ani pliku w argumentach: sprawdza tylko oficjalny adres
+  pluginu i zapisuje wynik w pliku `update.json` w folderze ustawień (zmienna `GD_UPDATE_SOURCE`
+  jest tylko do testów).
+
+Każde inne polecenie dalej działa według zwykłych zasad i pyta o zgodę. Reguły muszą się zgadzać
+co do litery, dlatego asystent używa pełnej ścieżki pliku startowego.
 
 **Dwie inne możliwości.** Pod polem wiadomości w aplikacji jest wybór trybu uprawnień (m.in.
-„Approve for me” i „Full access”). To działa od ręki, ale uprawnienia są wtedy szersze w całej
-rozmowie, nie tylko dla pluginu. Albo nic nie konfiguruj i zgadzaj się jednorazowo za każdym razem.
-Plugin nie może zmienić tych ustawień aplikacji za Ciebie.
+„Approve for me” i „Full access”; nazwy mogą się różnić w Twojej wersji aplikacji). To działa od
+ręki, ale uprawnienia są wtedy szersze w całej rozmowie, nie tylko dla pluginu. Albo nic nie
+konfiguruj i zgadzaj się jednorazowo za każdym razem. Plugin nie może zmienić tych ustawień
+aplikacji za Ciebie.
 
 **Po zapisaniu reguł** zamknij aplikację całkiem, otwórz ją ponownie i zacznij nową rozmowę. Codex
 czyta reguły tylko przy starcie. Poproś „Sprawdź konfigurację graphic-designer” (to polecenie
@@ -161,12 +191,13 @@ czyta reguły tylko przy starcie. Poproś „Sprawdź konfigurację graphic-desi
 
 1. Poproś asystenta: „Usuń reguły graphic-designer”. Uruchomi `setup-rules --remove`, które usuwa
    tylko oznaczony blok. Albo wykonaj to samo w Terminalu:
-   `python3 ~/.graphic-designer/designer.py setup-rules --remove`.
+   `python3 ~/.codex/graphic-designer/designer.py setup-rules --remove`.
 2. Możesz też otworzyć `~/.codex/rules/default.rules` i skasować linie od `# >>> graphic-designer`
-   do `# <<< graphic-designer <<<` (włącznie), nic poza nimi.
+   do `# <<< graphic-designer <<<` (włącznie), nic poza nimi. Kopię
+   `default.rules.graphic-designer.bak` możesz zostawić albo skasować.
 3. Zamknij aplikację i otwórz ją ponownie. Plik startowy możesz zostawić (nic nie robi sam z siebie)
-   albo usunąć: to tylko `designer.py` w folderze `~/.graphic-designer`; w tym folderze są też
-   Twoje ustawienia, więc nie kasuj całego folderu.
+   albo usunąć: to tylko `~/.codex/graphic-designer/designer.py`. Folder `~/.graphic-designer`
+   zawiera Twoje ustawienia, więc go nie kasuj.
 
 ## Telefon
 

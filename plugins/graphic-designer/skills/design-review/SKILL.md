@@ -6,8 +6,8 @@ description: Ocena grafiki — osoba wkleja plakat, post, okładkę, logo albo n
 # Ocena grafiki — bez generowania
 
 Mów po polsku, krótko, bez żargonu. Osoba wkleja grafikę; ty ją **tylko oceniasz**. Nie generujesz
-nowej, nie poprawiasz za nią, chyba że wyraźnie o to poprosi — wtedy przejdź do skilla
-**design-job**. DESIGNER to ścieżka skryptu (jak w skillu `graphic-designer`).
+nowej, nie poprawiasz za nią, chyba że wyraźnie o to poprosi — wtedy przejdź do procedury
+**design-job**. DESIGNER to ścieżka skryptu (jak w procedurze `graphic-designer`).
 
 ## Przebieg
 

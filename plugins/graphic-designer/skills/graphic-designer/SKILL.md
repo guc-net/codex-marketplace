@@ -21,7 +21,7 @@ Zapamiętaj pełną ścieżkę jako DESIGNER.
 - macOS / Linux: `python3 DESIGNER <polecenie>`
 - Windows: `py -3 DESIGNER <polecenie>` (albo `python`, jeśli `py` nie istnieje)
 
-**Stały skrypt startowy.** Jeśli istnieje plik `<GD_HOME albo ~/.graphic-designer>/designer.py`
+**Stały skrypt startowy.** Jeśli istnieje plik `<CODEX_HOME albo ~/.codex>/graphic-designer/designer.py`
 (`doctor` wypisuje jego pełną ścieżkę w linii „Polecenie do uruchamiania”), używaj go jako DESIGNER,
 dokładnie w tej pełnej postaci: `python3 /pełna/ścieżka/designer.py <polecenie>`. Reguły Codexa
 dopasowują początek polecenia, więc przed `python3` nie wolno nic dopisywać (żadnych zmiennych), a
@@ -47,7 +47,7 @@ a o kolory i fonty pytasz krótko (patrz `brand-kit`).
 (pierwszy raz ze ścieżką z folderu pluginu, bo stałego skryptu może jeszcze nie być; potem ze
 ścieżką z linii „Polecenie do uruchamiania”). Nic nie zmienia. Jeśli przy stałym skrypcie albo
 regułach jest `TODO:`, zaproponuj **raz, przed rozpoczęciem pracy**: „Skonfigurować to raz, żeby
-Codex nie pytał o zgodę przy każdym renderze?” Po „tak” prowadzi dalej procedura **setup**. Po
+Codex nie pytał o zgodę przy każdym składaniu grafiki?” Po „tak” prowadzi dalej procedura **setup**. Po
 „nie” pracuj dalej, prosząc o zgodę przy poleceniach, które jej wymagają (kroki niżej), nie pytaj
 drugi raz w tej rozmowie i powiedz, że wystarczy napisać „Skonfiguruj graphic-designer”. Gdy
 `doctor` nie ma takich `TODO:`, nie mów nic.
@@ -113,7 +113,7 @@ drugi raz w tej rozmowie i powiedz, że wystarczy napisać „Skonfiguruj graphi
    - `BRAND: …` → powiedz jednym zdaniem, jaką markę znalazłeś (nazwa, wersja). Ostrzeżenia
      i problemy przekaż krótko.
    - `NO BRAND` → powiedz, że nie znasz marki; zlecenia możesz robić bez biblii, jeśli osoba
-     dołączy logo, kolory i fonty (skill **brand-kit**, część „Praca bez biblii”).
+     dołączy logo, kolory i fonty (procedura **brand-kit**, część „Praca bez biblii”).
 4. **Biblioteka zleceń** — `DESIGNER library`. To stały folder na wszystkie zlecenia: robocze
    wersje, warstwy, podglądy. Leży poza repozytoriami; szkice nigdy tam nie trafiają.
    - `LIBRARY: <folder>` → pracujesz tam. Zlecenie wskazujesz samym slugiem: `--job <slug>`.
@@ -141,7 +141,7 @@ Jak pracujemy:
 ```
 
 Wprowadzenie podajesz raz na rozmowę, nie przy każdej odpowiedzi. Zaraz po nim zadaj
-pytania do briefu (skill **design-job**).
+pytania do briefu (procedura **design-job**).
 
 ## Koszty — jedno zdanie, gdy dojdzie do generowania
 
@@ -152,18 +152,18 @@ o wiele wariantów powiedz o tym, zanim zaczniesz.
 
 ## Dokąd dalej
 
-- Plakat, post, relacja, okładka, napis, logo na zdjęciu, wydruk → skill **design-job**.
-- Kolory, fonty, logo, „zapisz markę”, „zmień kolor marki”, przykłady „tak/nie” → skill **brand-kit**.
-- „Oceń tę grafikę”, „co myślisz o tym plakacie” (osoba wkleja gotową) → skill **design-review**.
+- Plakat, post, relacja, okładka, napis, logo na zdjęciu, wydruk → procedura **design-job**.
+- Kolory, fonty, logo, „zapisz markę”, „zmień kolor marki”, przykłady „tak/nie” → procedura **brand-kit**.
+- „Oceń tę grafikę”, „co myślisz o tym plakacie” (osoba wkleja gotową) → procedura **design-review**.
 - „Przejmij grafikę z repozytorium i popraw” → `DESIGNER adopt --package <folder>`, potem **design-job**.
-- „Skonfiguruj graphic-designer”, „Codex pyta o zgodę przy każdym renderze”, „cofnij konfigurację”
-  → skill **setup**.
+- „Skonfiguruj graphic-designer”, „Codex pyta o zgodę przy każdym składaniu grafiki”, „cofnij konfigurację”
+  → procedura **setup**.
 - „Gdzie są moje grafiki?” → `DESIGNER library` i `DESIGNER status`; podaj pełne ścieżki.
 
 ## Zasady stałe
 
 - Marka i zlecenia to dwie osobne rzeczy: biblia marki (`brand/`) zmienia się tylko przez
-  skill **brand-kit**, za wyraźnym „tak”; zlecenie to jedna praca w folderze roboczym.
+  procedura **brand-kit**, za wyraźnym „tak”; zlecenie to jedna praca w folderze roboczym.
 - Wersji nie kasujesz i nie nadpisujesz. Każda generacja to nowa wersja.
 - Do repozytorium trafiają wyłącznie grafiki ostateczne (`share`, `finalize`). Szkice
   zostają w folderze roboczym.
