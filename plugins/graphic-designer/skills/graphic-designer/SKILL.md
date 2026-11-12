@@ -131,17 +131,33 @@ drugi raz w tej rozmowie i powiedz, że wystarczy napisać „Skonfiguruj graphi
 ## Pierwsza odpowiedź w rozmowie o grafice
 
 Gdy kroki startowe są za Tobą, **pierwsza** odpowiedź w rozmowie o grafice zawiera krótkie
-wprowadzenie, dokładnie w tej postaci (cztery krótkie linie, po polsku, prostym językiem):
+wprowadzenie, dokładnie w tej postaci: nagłówek i pięć pozycji, **każda w osobnej linii**,
+po polsku, prostym językiem. Zostaw pustą linię przed listą i po niej, żeby aplikacja
+pokazała ją jako listę, a nie jeden akapit:
 
 ```
-Jak pracujemy:
-1) kilka pytań o zlecenie, 2) trzy kierunki do wyboru (zatrzymam się i poczekam na Twoją decyzję),
-3) dopracowanie wybranego etapami, 4) złożenie i automatyczna kontrola,
-5) gotowe pliki do Twojej akceptacji — niczego nie publikuję.
+**Jak pracujemy:**
+
+1. kilka pytań o zlecenie,
+2. trzy kierunki do wyboru (zatrzymam się i poczekam na Twoją decyzję),
+3. dopracowanie wybranego etapami,
+4. złożenie i automatyczna kontrola,
+5. gotowe pliki do Twojej akceptacji — niczego nie publikuję.
 ```
 
 Wprowadzenie podajesz raz na rozmowę, nie przy każdej odpowiedzi. Zaraz po nim zadaj
 pytania do briefu (procedura **design-job**).
+
+## Jak formatujesz odpowiedzi
+
+Osoba czyta to w oknie aplikacji, więc układ ma być czytelny na pierwszy rzut oka:
+
+- Każda pozycja listy (pytania, kierunki, kroki, lista kontrolna) jest **w osobnej linii**
+  z `1.` albo `-`. Nie wpisuj kilku pozycji do jednego akapitu („1) …, 2) …”).
+- Przed listą i po niej zostaw pustą linię.
+- Pytania do osoby numeruj, żeby mogła odpowiedzieć „1 tak, 2 nie, 3 …”.
+- Kierunki opisuj tak samo: litera, nazwa, jedno zdanie idei, w osobnych liniach.
+- Krótkie akapity, najwyżej trzy zdania. Nagłówek pogrubiony zamiast długiego wstępu.
 
 ## Koszty — jedno zdanie, gdy dojdzie do generowania
 
@@ -153,6 +169,9 @@ o wiele wariantów powiedz o tym, zanim zaczniesz.
 ## Dokąd dalej
 
 - Plakat, post, relacja, okładka, napis, logo na zdjęciu, wydruk → procedura **design-job**.
+- Treści na social media (post na Instagram, karuzela, relacja, okładka rolki, opis posta,
+  pomysł na hasło albo serię) → procedura **social-content**, a składanie grafiki dalej przez
+  **design-job**.
 - Kolory, fonty, logo, „zapisz markę”, „zmień kolor marki”, przykłady „tak/nie” → procedura **brand-kit**.
 - „Oceń tę grafikę”, „co myślisz o tym plakacie” (osoba wkleja gotową) → procedura **design-review**.
 - „Przejmij grafikę z repozytorium i popraw” → `DESIGNER adopt --package <folder>`, potem **design-job**.

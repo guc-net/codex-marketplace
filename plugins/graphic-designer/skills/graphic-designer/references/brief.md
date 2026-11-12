@@ -20,6 +20,13 @@ Wpisane słowo w słowo, bez poprawiania. Skrypt i agent niczego tu nie zmieniaj
 - Wezwanie do działania:
 - Drobny druk:
 
+## Dla mediów społecznościowych (gdy dotyczy)
+Po co ktoś ma się zatrzymać i co ma zrobić (zapisać się, zapisać post, przesłać dalej, napisać).
+
+- Hasło otwierające (hak):
+- Opis posta (pierwsze zdanie widać przed „więcej”):
+- Liczba slajdów, jeśli karuzela:
+
 ## Formaty
 Które formaty są potrzebne (np. ig-post, ig-story, a4-print)?
 

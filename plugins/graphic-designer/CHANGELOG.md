@@ -3,6 +3,15 @@
 Najnowsza wersja na górze. Ten plik czyta plugin, kiedy mówi Ci o aktualizacji —
 pisz więc tak, żeby rozumiał to ktoś, kto nie programuje.
 
+## 0.3.0 — 2026-11-12
+
+- Nowa procedura „social-content”: treści na Instagram i inne sieci. Dobiera format do celu (post, karuzela, relacja, okładka rolki), układa hasło otwierające i opis posta, a trzy kierunki do wyboru różnią się **sposobem przyciągnięcia uwagi** (duże hasło, człowiek w akcji, zbliżenie na fakturę, niespodzianka w kadrze, pytanie, liczba, seria), nie samym kolorem. Przed pokazem asystent robi „test przewijania” na pomniejszonym podglądzie.
+- Dwa nowe pliki wiedzy: `social.md` (jak zatrzymać przewijanie, wzory haseł, karuzela, relacja, seria) i `copy-pl.md` (polszczyzna w hasłach i opisach, szkielet opisu posta, uczciwość obietnic).
+- Karuzela: nowe formaty `ig-carousel-1` … `ig-carousel-10` (każdy slajd to osobna kompozycja 1080×1350 px, ze sprawdzaniem jak przy poście). Brief ma sekcję o mediach (hasło, opis posta, liczba slajdów).
+- Naprawa po teście 12.11.2026: wprowadzenie „Jak pracujemy” pokazywało się jako dwa gęste akapity, bo pozycje były sklejone w jednej linii. Teraz to lista numerowana, a procedura wymaga takiego układu w każdej odpowiedzi (listy w osobnych liniach, pusta linia przed i po).
+- Odpowiedź z gotową grafiką ma zawsze cztery części: plik, wynik kontroli, samoocena, lista „do sprawdzenia przez człowieka” (wcześniej asystent potrafił podać tylko link do pliku).
+- Gdy styl „nie pasuje” osobie, asystent najpierw szuka rozwiązania w obrębie marki, a użycie fontu albo koloru spoza biblii zgłasza wprost i czeka na „tak” (kontrola automatyczna tego nie wyłapuje).
+
 ## 0.2.0 — 2026-11-12
 
 - Konfiguracja na początek: nowa procedura „setup” prowadzi krok po kroku (aplikacja Codex może ją zaproponować tuż po instalacji; inaczej napisz „Skonfiguruj graphic-designer”). Sprawdza, co działa, i mówi, co jest do zrobienia.

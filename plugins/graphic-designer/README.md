@@ -41,7 +41,7 @@ Dla kogoś, kto nie wie nic o pluginach.
 
 Krótkie pliki w `skills/graphic-designer/references/`: `brief.md`, `logo.md`, `typography.md`,
 `color.md`, `composition.md`, `poster.md`, `formats.md`, `print.md`, `image-prompting.md`,
-`generic-ai-tells.md`, `critique.md` (14 punktów samooceny, z oznaczeniem, które liczy skrypt).
+`generic-ai-tells.md`, `social.md`, `copy-pl.md`, `critique.md` (14 punktów samooceny, z oznaczeniem, które liczy skrypt).
 
 ## Skrypt
 
