@@ -134,8 +134,10 @@ class LauncherFinding(Sandboxed):
 
     def test_only_plain_releases_are_considered(self):
         self.fake_plugin("0.2.0")
-        for junk in ("0.3.0-beta.1", "0.3.0.old", "v0.3.0", "backup-2025", "0.3", "1.0.0-rc1", "2025",
-                     "0.3.0 "):
+        junk_names = ["0.3.0-beta.1", "0.3.0.old", "v0.3.0", "backup-2025", "0.3", "1.0.0-rc1", "2025"]
+        if os.name != "nt":  # Windows nie pozwala na spację na końcu nazwy katalogu
+            junk_names.append("0.3.0 ")
+        for junk in junk_names:
             self.fake_plugin(junk)
         self.assertEqual(self.picked(), "0.2.0")
 
