@@ -8,6 +8,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import Callable, List, Optional, Set, Tuple
 
@@ -19,6 +20,9 @@ ALLOWED_SUBCOMMANDS = ("env", "render", "check", "update-check", "doctor")
 BEGIN = "# >>> graphic-designer (zarządzane przez plugin) >>>"
 END = "# <<< graphic-designer <<<"
 TEMPLATE = PLUGIN_ROOT / "templates" / "launcher.py"
+# To zdanie jest w każdej wersji szablonu: po nim poznajemy, że plik jest nasz (przed usunięciem).
+LAUNCHER_MARKER = "Stały skrypt startowy pluginu graphic-designer"
+BACKUP_SUFFIX = ".graphic-designer.bak"
 NEXT = "Następny krok:"
 
 
@@ -36,6 +40,13 @@ def rules_file() -> Path:
 
 
 def launcher_path() -> Path:
+    """Stały skrypt leży w folderze Codexa, który Codex chroni przed zapisem z piaskownicy także
+    wtedy, gdy osoba otworzy swój katalog domowy jako projekt (przegląd 0.2.0, I1)."""
+    return codex_home() / "graphic-designer" / "designer.py"
+
+
+def legacy_launcher_path() -> Path:
+    """Dawne miejsce (0.2.0 przed poprawką): folder ustawień pluginu, niechroniony przez Codex."""
     return gd_home() / "designer.py"
 
 
@@ -62,21 +73,48 @@ def current_command() -> str:
 
 # ---------------------------------------------------------------- stały skrypt startowy
 
-def setup_launcher() -> str:
-    """Instaluje albo aktualizuje stały skrypt. Zwraca: installed, updated albo current."""
+def is_our_launcher(path: Path) -> bool:
+    try:
+        return path.is_file() and LAUNCHER_MARKER in path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return False
+
+
+def legacy_state() -> str:
+    """absent, ours (nasz plik w dawnym miejscu) albo foreign (cudzy plik pod tą nazwą)."""
+    old = legacy_launcher_path()
+    if old == launcher_path() or not old.is_file():
+        return "absent"
+    return "ours" if is_our_launcher(old) else "foreign"
+
+
+def setup_launcher() -> Tuple[str, str]:
+    """Instaluje albo aktualizuje stały skrypt i sprząta dawne miejsce.
+
+    Zwraca (status, dawny): status to installed, updated albo current; dawny to absent, removed
+    (nasz plik usunięty) albo foreign (cudzego pliku nie ruszamy)."""
     wanted = TEMPLATE.read_bytes()
     dest = launcher_path()
     try:
         current = dest.read_bytes() if dest.is_file() else None
-        if current == wanted:
-            return "current"
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        dest.write_bytes(wanted)
-        if os.name == "posix":
-            dest.chmod(0o755)
+        status = "current"
+        if current != wanted:
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_bytes(wanted)
+            if os.name == "posix":
+                dest.chmod(0o755)
+            status = "installed" if current is None else "updated"
     except OSError as e:
         raise GdError(f"nie mogę zapisać {dest}: {e}")
-    return "installed" if current is None else "updated"
+    legacy = legacy_state()
+    if legacy == "ours":
+        try:
+            legacy_launcher_path().unlink()
+        except OSError as e:
+            raise GdError(f"zainstalowałem {dest}, ale nie mogę usunąć dawnego pliku "
+                          f"{legacy_launcher_path()}: {e}")
+        legacy = "removed"
+    return status, legacy
 
 
 def launcher_state() -> str:
@@ -92,17 +130,25 @@ def launcher_state() -> str:
 
 # ---------------------------------------------------------------- reguły Codexa
 
+def starlark_string(text: str) -> str:
+    """Literał tekstowy do reguł Codexa (Starlark): cudzysłowy, odwrotne ukośniki (ścieżki z Windows)
+    i znaki sterujące zapisane przez ucieczkę, więc ścieżka nie wychodzi poza literał."""
+    return json.dumps(text, ensure_ascii=False)
+
+
 def rules_block(launcher: Path, eol: str = "\n") -> str:
     """Blok reguł między znacznikami; kończy się znakiem nowej linii."""
-    path = json.dumps(str(launcher), ensure_ascii=False)
+    path = starlark_string(str(launcher))
     lines = [
         BEGIN,
         "# Reguły Codexa dla pluginu graphic-designer. Pozwalają uruchamiać poza piaskownicą,",
         "# bez pytania o zgodę, tylko te polecenia pluginu: " + ", ".join(ALLOWED_SUBCOMMANDS) + ".",
         "# Powód: Chrome, którym plugin składa grafiki, nie startuje w piaskownicy Codexa na macOS.",
-        "# Blok dopisuje i aktualizuje plugin (designer.py setup-rules). Usuniesz go poleceniem",
-        "# setup-rules --remove albo ręcznie, razem z liniami początku i końca. Po każdej zmianie",
-        "# uruchom Codex ponownie, bo czyta reguły przy starcie.",
+        "# Reguła dopasowuje tylko początek polecenia: argumenty po nim nie są ograniczone.",
+        "# Blok dopisuje i aktualizuje plugin (designer.py setup-rules --apply); przy aktualizacji",
+        "# nadpisuje całą treść między znacznikami, więc ręczne zmiany w środku bloku znikną.",
+        "# Usuniesz go poleceniem setup-rules --remove albo ręcznie, razem z liniami początku i",
+        "# końca. Po każdej zmianie uruchom Codex ponownie, bo czyta reguły przy starcie.",
     ]
     lines += [f'prefix_rule(pattern=["python3", {path}, "{sub}"], decision="allow")'
               for sub in ALLOWED_SUBCOMMANDS]
@@ -110,18 +156,57 @@ def rules_block(launcher: Path, eol: str = "\n") -> str:
     return eol.join(lines) + eol
 
 
+_LINE = re.compile(r"[^\r\n]*(?:\r\n|\n|\r)|[^\r\n]+")
+
+
+def _split_lines(text: str) -> List[str]:
+    """Linie z końcami (tylko \\n, \\r\\n i \\r; `str.splitlines` dzieli też na U+2028 i innych)."""
+    return _LINE.findall(text)
+
+
 def _read(path: Path) -> str:
+    """Treść jako tekst UTF-8, bez żadnej zamiany końców linii (czytamy bajty)."""
     try:
-        with open(path, encoding="utf-8", newline="") as f:
-            return f.read()
+        return path.read_bytes().decode("utf-8")
     except (OSError, UnicodeDecodeError) as e:
         raise GdError(f"nie mogę odczytać {path}: {e}")
 
 
 def _write(path: Path, text: str) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8", newline="") as f:
-        f.write(text)
+    """Zapis atomowy: plik tymczasowy w tym samym katalogu, potem os.replace. Zachowuje uprawnienia
+    istniejącego pliku i dowiązanie symboliczne (zapis idzie do celu). Przy błędzie oryginał zostaje
+    nietknięty, a plik tymczasowy znika. Zapisuje bajty, więc system nie zmieni końców linii."""
+    target = Path(os.path.realpath(str(path)))
+    target.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(prefix=target.name + ".", suffix=".tmp", dir=str(target.parent))
+    try:
+        with os.fdopen(fd, "wb") as f:
+            f.write(text.encode("utf-8"))
+            f.flush()
+            os.fsync(f.fileno())
+        if target.exists():
+            shutil.copymode(str(target), tmp)
+        else:
+            os.chmod(tmp, 0o644)
+        os.replace(tmp, str(target))
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+
+def backup_path() -> Path:
+    target = Path(os.path.realpath(str(rules_file())))
+    return target.with_name(target.name + BACKUP_SUFFIX)
+
+
+def _backup_once(path: Path) -> None:
+    """Jednorazowa kopia pliku reguł sprzed pierwszego zapisu; istniejącej kopii nie nadpisuje."""
+    backup = backup_path()
+    if not backup.exists():
+        shutil.copyfile(os.path.realpath(str(path)), str(backup))
 
 
 def _find_block(lines: List[str], path: Path) -> Optional[Tuple[int, int]]:
@@ -148,7 +233,7 @@ def apply_rules() -> str:
     text = _read(path) if existed else ""
     eol = "\r\n" if "\r\n" in text else "\n"
     block = rules_block(launcher, eol)
-    lines = text.splitlines(keepends=True)
+    lines = _split_lines(text)
     span = _find_block(lines, path)
     try:
         if span is not None:
@@ -157,6 +242,7 @@ def apply_rules() -> str:
             if "".join(lines[start:end + 1]).rstrip("\r\n") == block.rstrip("\r\n"):
                 return "current"
             lines[start:end + 1] = [block.rstrip("\r\n") + tail]
+            _backup_once(path)
             _write(path, "".join(lines))
             return "updated"
         new_text = text
@@ -164,6 +250,8 @@ def apply_rules() -> str:
             if not text.endswith(("\n", "\r")):
                 new_text += eol
             new_text += eol
+        if existed:
+            _backup_once(path)
         _write(path, new_text + block)
     except OSError as e:
         raise GdError(_write_failure(path, e))
@@ -171,8 +259,8 @@ def apply_rules() -> str:
 
 
 def _write_failure(path: Path, error: Exception) -> str:
-    return (f"nie mogę zapisać {path}: {error}. Uruchom to samo w Terminalu (poza Codexem): "
-            f"python3 {_q(launcher_path())} setup-rules --apply")
+    return (f"nie mogę zapisać {path}: {error}. Plik zostaje bez zmian. Uruchom to samo w Terminalu "
+            f"(poza Codexem): python3 {_q(launcher_path())} setup-rules --apply")
 
 
 def remove_rules() -> str:
@@ -180,7 +268,7 @@ def remove_rules() -> str:
     path = rules_file()
     if not path.is_file():
         return "absent"
-    lines = _read(path).splitlines(keepends=True)
+    lines = _split_lines(_read(path))
     span = _find_block(lines, path)
     if span is None:
         return "absent"
@@ -195,10 +283,19 @@ def remove_rules() -> str:
     return "removed"
 
 
+def rules_reference(path: Path) -> bool:
+    """Czy któryś plik reguł zawiera ścieżkę `path` (jako literał reguły)."""
+    needle = starlark_string(str(path))
+    try:
+        return any(needle in _read(p) for p in rule_files())
+    except GdError:
+        return False
+
+
 def rules_allowing(text: str, launcher: Path) -> Set[str]:
     """Podpolecenia, na które reguły z `text` pozwalają dla danego skryptu (przeszukiwanie tekstu)."""
-    body = "\n".join(l for l in text.splitlines() if not l.lstrip().startswith("#"))
-    quoted = re.escape(json.dumps(str(launcher), ensure_ascii=False))
+    body = "".join(l for l in _split_lines(text) if not l.lstrip().startswith("#"))
+    quoted = re.escape(starlark_string(str(launcher)))
     pattern = re.compile(r'pattern\s*=\s*\[\s*"python3"\s*,\s*' + quoted + r'\s*(?:,\s*"([\w-]+)"\s*)?[,\]]')
     allowed: Set[str] = set()
     for stmt in re.split(r"(?=prefix_rule\s*\()", body):
@@ -245,9 +342,13 @@ def browser_lines() -> List[str]:
     if result.startswith("BROWSER-TEST: OK"):
         lines.append("OK: próbny start przeglądarki udał się.")
     else:
-        lines.append(_todo(f"próbny start przeglądarki nie udał się ({result[:300]})",
-                           "w Codexie na macOS uruchom to polecenie poza piaskownicą (konfiguracja reguł "
-                           "robi to bez pytania), a przy innym błędzie sprawdź przeglądarkę poleceniem env"))
+        if os.environ.get("CODEX_SANDBOX"):
+            step = ("uruchom to polecenie poza piaskownicą (konfiguracja reguł robi to bez pytania "
+                    "i jest opisana w procedurze setup)")
+        else:
+            step = ("sprawdź, czy przeglądarka uruchamia się ręcznie, albo wskaż inną zmienną "
+                    "GD_BROWSER=<ścieżka do pliku programu>")
+        lines.append(_todo(f"próbny start przeglądarki nie udał się ({result[:300]})", step))
     return lines
 
 
@@ -280,17 +381,30 @@ def sandbox_line() -> str:
     return "INFO: CODEX_SANDBOX nie jest ustawione: polecenie działa poza piaskownicą Codexa albo poza Codexem."
 
 
-def launcher_line() -> str:
-    path = launcher_path()
-    state = launcher_state()
-    if state == "ok":
-        return f"OK: stały skrypt startowy jest zainstalowany i aktualny: {path}."
-    what = ("stały skrypt startowy nie jest zainstalowany" if state == "missing"
-            else "stały skrypt startowy jest nieaktualny") + f" ({path})"
-    step = f"python3 {_q(plugin_script())} setup-launcher"
+def _need(what: str, step: str) -> str:
+    """TODO na macOS, a poza nim tylko INFO (reguły są potrzebne tylko tam)."""
     if is_mac():
         return _todo(what, step)
-    return f"INFO: {what}; na tym systemie jest potrzebny tylko do reguł Codexa na macOS ({step})."
+    return f"INFO: {what}; na tym systemie jest potrzebne tylko do reguł Codexa na macOS ({step})."
+
+
+def launcher_lines() -> List[str]:
+    path, state, legacy = launcher_path(), launcher_state(), legacy_state()
+    old = legacy_launcher_path()
+    step = f"python3 {_q(plugin_script())} setup-launcher"
+    if state == "ok":
+        lines = [f"OK: stały skrypt startowy jest zainstalowany i aktualny: {path}."]
+    else:
+        what = ("stały skrypt startowy nie jest zainstalowany" if state == "missing"
+                else "stały skrypt startowy jest nieaktualny") + f" ({path})"
+        if legacy == "ours":
+            what += (f"; jego dawna kopia leży jeszcze w {old}, w miejscu, które agent z piaskownicy "
+                     "mógłby zmienić")
+        lines = [_need(what, step + " (zainstaluje w chronionym miejscu i usunie dawny plik)")]
+    if state == "ok" and legacy == "ours":
+        lines.append(_need(f"dawny stały skrypt startowy nadal leży w {old} (miejsce niechronione)",
+                           step + " (usunie go)"))
+    return lines
 
 
 def rule_files() -> List[Path]:
@@ -313,6 +427,9 @@ def rules_lines() -> List[str]:
     elif has_block:
         what = (f"blok reguł graphic-designer jest nieaktualny: brakuje reguł dla {', '.join(missing)} "
                 f"albo wskazuje inną ścieżkę niż {launcher}")
+        old = legacy_launcher_path()
+        if any(starlark_string(str(old)) in t for t in texts):
+            what += f" (reguły ufają jeszcze dawnemu plikowi {old}, który agent z piaskownicy mógłby zmienić)"
         lines = [_todo(what, f"{step} --apply (zaktualizuje blok po Twojej zgodzie), potem uruchom Codex "
                              "ponownie")]
     else:
@@ -368,7 +485,7 @@ def doctor_lines() -> List[str]:
         ("biblioteka", lambda: [library_line()]),
         ("klucz API", lambda: api_key_lines()),
         ("piaskownica", lambda: [sandbox_line()]),
-        ("stały skrypt", lambda: [launcher_line()]),
+        ("stały skrypt", lambda: launcher_lines()),
         ("reguły", lambda: rules_lines()),
         ("polecenie", lambda: [command_line()]),
     ]

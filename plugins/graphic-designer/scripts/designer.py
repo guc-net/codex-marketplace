@@ -270,12 +270,20 @@ def cmd_update_check(args) -> int:
 
 def cmd_setup_launcher(args) -> int:
     from gd import onboard
-    status = onboard.setup_launcher()
+    status, legacy = onboard.setup_launcher()
     path = onboard.launcher_path()
     info(f"LAUNCHER: {path}")
     info({"installed": "OK: zainstalowano stały skrypt startowy.",
           "updated": "OK: zaktualizowano stały skrypt startowy.",
           "current": "OK: stały skrypt startowy jest już aktualny."}[status])
+    old = onboard.legacy_launcher_path()
+    if legacy == "removed":
+        info(f"OK: usunięto dawny plik startowy {old} (leżał w miejscu, którego Codex nie chroni).")
+    elif legacy == "foreign":
+        info(f"UWAGA: {old} nie wygląda na plik pluginu, więc go nie ruszam.")
+    if legacy != "absent" and onboard.rules_reference(old):
+        info(f"UWAGA: reguły Codexa nadal ufają dawnemu plikowi {old}. Przepisz je na nową ścieżkę: "
+             f"python3 {path} setup-rules --apply")
     info(f"Używaj go tak: python3 {path} <polecenie>")
     return 0
 
@@ -283,7 +291,11 @@ def cmd_setup_launcher(args) -> int:
 def _rules_warning() -> None:
     from gd import onboard
     info("UWAGA: te polecenia będą się uruchamiać poza piaskownicą Codexa, bez pytania o zgodę: "
-         + ", ".join(onboard.ALLOWED_SUBCOMMANDS) + ".")
+         + ", ".join(onboard.ALLOWED_SUBCOMMANDS) + ". Reguła dopasowuje tylko początek polecenia, "
+         "więc argumenty (np. --job <folder>) nie są ograniczone. Chrome składa wtedy stronę ze "
+         "zlecenia bez piaskownicy; plugin ogranicza ją zasadą CSP (bez skryptów, sieci i ramek), "
+         "ale strona nadal może pokazać na obrazie dowolny plik graficzny z dysku. Otwieraj tylko "
+         "zlecenia, którym ufasz.")
 
 
 def cmd_setup_rules(args) -> int:
@@ -304,7 +316,10 @@ def cmd_setup_rules(args) -> int:
             return 0
         info({"created": f"OK: utworzono {path} z blokiem reguł.",
               "added": f"OK: dopisano blok reguł na końcu {path}; reszta pliku bez zmian.",
-              "updated": f"OK: zaktualizowano blok reguł w {path} (zmieniła się ścieżka skryptu)."}[status])
+              "updated": f"OK: zaktualizowano blok reguł w {path}: zastąpiono całą treść między znacznikami "
+                         "nową (ręczne zmiany w środku bloku znikają), reszta pliku bez zmian."}[status])
+        if onboard.backup_path().is_file():
+            info(f"Kopia pliku sprzed pierwszej zmiany: {onboard.backup_path()}")
         _rules_warning()
         info("Uruchom Codex ponownie, żeby wczytał reguły (czyta je przy starcie). "
              "Sprawdzisz je poleceniem doctor. Cofnięcie: setup-rules --remove.")
@@ -314,7 +329,8 @@ def cmd_setup_rules(args) -> int:
     if not launcher.is_file():
         info(f"UWAGA: nie ma jeszcze stałego skryptu startowego {launcher}. Najpierw: "
              f"python3 {onboard.plugin_script()} setup-launcher")
-    info("Na końcu tego pliku pojawi się taki blok (reszty pliku nie ruszam):")
+    info("Na końcu tego pliku pojawi się taki blok (reszty pliku nie ruszam; przed zmianą powstanie "
+         f"jednorazowa kopia {onboard.backup_path().name}):")
     info()
     info(onboard.rules_block(launcher))
     _rules_warning()
@@ -417,7 +433,7 @@ def parser() -> argparse.ArgumentParser:
     s = sub.add_parser("update-check", help="sprawdź, czy jest nowsza wersja pluginu (raz dziennie)")
     s.add_argument("--force", action="store_true", help="pomiń wynik z dzisiejszego sprawdzenia")
     s.set_defaults(func=cmd_update_check)
-    s = sub.add_parser("setup-launcher", help="zainstaluj stały skrypt startowy (stała ścieżka dla reguł Codexa)")
+    s = sub.add_parser("setup-launcher", help="zainstaluj stały skrypt startowy w folderze Codexa (stała ścieżka dla reguł)")
     s.set_defaults(func=cmd_setup_launcher)
     s = sub.add_parser("setup-rules", help="pokaż (domyślnie), dopisz albo usuń reguły Codexa pluginu")
     g = s.add_mutually_exclusive_group()
