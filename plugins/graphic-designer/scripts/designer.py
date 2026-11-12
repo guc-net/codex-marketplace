@@ -263,8 +263,7 @@ def cmd_env(args) -> int:
 
 def cmd_update_check(args) -> int:
     from gd import update
-    cache = Path(args.cache).expanduser() if args.cache else update.default_cache()
-    text = update.check(cache, args.source or update.SOURCE_URL, args.force)
+    text = update.check(update.default_cache(), update.source_url(), args.force)
     info(text)
     return 2 if text.startswith("NIE SPRAWDZONO") else 0
 
@@ -417,8 +416,6 @@ def parser() -> argparse.ArgumentParser:
     s.set_defaults(func=cmd_env)
     s = sub.add_parser("update-check", help="sprawdź, czy jest nowsza wersja pluginu (raz dziennie)")
     s.add_argument("--force", action="store_true", help="pomiń wynik z dzisiejszego sprawdzenia")
-    s.add_argument("--source", help="adres z plugin.json i CHANGELOG.md (domyślnie GitHub)")
-    s.add_argument("--cache", help="plik z wynikiem (domyślnie ~/.graphic-designer/update.json)")
     s.set_defaults(func=cmd_update_check)
     s = sub.add_parser("setup-launcher", help="zainstaluj stały skrypt startowy (stała ścieżka dla reguł Codexa)")
     s.set_defaults(func=cmd_setup_launcher)
