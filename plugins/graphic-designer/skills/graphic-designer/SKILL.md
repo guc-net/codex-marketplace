@@ -21,6 +21,16 @@ Zapamiętaj pełną ścieżkę jako DESIGNER.
 - macOS / Linux: `python3 DESIGNER <polecenie>`
 - Windows: `py -3 DESIGNER <polecenie>` (albo `python`, jeśli `py` nie istnieje)
 
+**Stały skrypt startowy.** Jeśli istnieje plik `<GD_HOME albo ~/.graphic-designer>/designer.py`
+(`doctor` wypisuje jego pełną ścieżkę w linii „Polecenie do uruchamiania”), używaj go jako DESIGNER,
+dokładnie w tej pełnej postaci: `python3 /pełna/ścieżka/designer.py <polecenie>`. Reguły Codexa
+dopasowują początek polecenia, więc przed `python3` nie wolno nic dopisywać (żadnych zmiennych), a
+w ścieżce nie wolno używać `~` ani `$HOME`; nie podstawiaj też ścieżki z folderu pluginu, bo ta
+zawiera numer wersji i reguł nie dotyczy. Stały skrypt sam znajduje najnowszą wersję pluginu.
+Wyjątek: `GD_BROWSER_TRY=1 python3 …` (opisany niżej) nie pasuje do reguł, więc poprosi o zgodę.
+Gdy stałego skryptu nie ma albo osoba nie chce reguł, używasz ścieżki z folderu pluginu i prosisz
+o zgodę przy poleceniach, które jej wymagają.
+
 Jeśli Pythona nie ma: na macOS zaproponuj `xcode-select --install` (okno systemowe,
 kilka minut), na Windows `winget install Python.Python.3.12`. Wyjaśnij jednym zdaniem,
 po co, i poproś o zgodę. `python3 DESIGNER --help` pokazuje wszystkie polecenia.
@@ -32,6 +42,15 @@ do etapu kierunków i szkiców; osoba dołącza pliki (logo, zdjęcia) jako zał
 a o kolory i fonty pytasz krótko (patrz `brand-kit`).
 
 ## Na początku rozmowy, po kolei
+
+**Najpierw konfiguracja (tylko macOS; na innych systemach pomiń).** Uruchom `DESIGNER doctor`
+(pierwszy raz ze ścieżką z folderu pluginu, bo stałego skryptu może jeszcze nie być; potem ze
+ścieżką z linii „Polecenie do uruchamiania”). Nic nie zmienia. Jeśli przy stałym skrypcie albo
+regułach jest `TODO:`, zaproponuj **raz, przed rozpoczęciem pracy**: „Skonfigurować to raz, żeby
+Codex nie pytał o zgodę przy każdym renderze?” Po „tak” prowadzi dalej procedura **setup**. Po
+„nie” pracuj dalej, prosząc o zgodę przy poleceniach, które jej wymagają (kroki niżej), nie pytaj
+drugi raz w tej rozmowie i powiedz, że wystarczy napisać „Skonfiguruj graphic-designer”. Gdy
+`doctor` nie ma takich `TODO:`, nie mów nic.
 
 1. **Aktualizacja** — `DESIGNER update-check`. Sprawdza najwyżej raz dziennie, więc nie męczy.
    - `AKTUALNA` → nic nie mów.
@@ -70,6 +89,9 @@ a o kolory i fonty pytasz krótko (patrz `brand-kit`).
         poza piaskownicą (okno zgody w aplikacji, „uruchom bez piaskownicy”). Jeśli okno zgody
         pozwala zapamiętać tę decyzję dla takich poleceń, zaproponuj to osobie (nie wymyślaj
         nazw przycisków). Osoba może też uruchomić aplikację z szerszymi uprawnieniami.
+        Po konfiguracji (stały skrypt i reguły) te polecenia uruchamiają się poza piaskownicą bez
+        pytania, ale tylko przez stały skrypt, w pełnej postaci z `doctor`. Jeśli mimo
+        konfiguracji widzisz `SKIPPED`, najpewniej użyłeś innej ścieżki: użyj tej z `doctor`.
      3. Po zgodzie uruchom `DESIGNER env` jeszcze raz poza piaskownicą; ma pokazać
         `BROWSER-TEST: OK`. Po zgodzie Chrome działa poprawnie. Jeśli mimo uruchomienia
         poza piaskownicą nadal widzisz `SKIPPED` albo `SANDBOX?:` (skrypt błędnie uznał, że
@@ -134,6 +156,8 @@ o wiele wariantów powiedz o tym, zanim zaczniesz.
 - Kolory, fonty, logo, „zapisz markę”, „zmień kolor marki”, przykłady „tak/nie” → skill **brand-kit**.
 - „Oceń tę grafikę”, „co myślisz o tym plakacie” (osoba wkleja gotową) → skill **design-review**.
 - „Przejmij grafikę z repozytorium i popraw” → `DESIGNER adopt --package <folder>`, potem **design-job**.
+- „Skonfiguruj graphic-designer”, „Codex pyta o zgodę przy każdym renderze”, „cofnij konfigurację”
+  → skill **setup**.
 - „Gdzie są moje grafiki?” → `DESIGNER library` i `DESIGNER status`; podaj pełne ścieżki.
 
 ## Zasady stałe
